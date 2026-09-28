@@ -1,0 +1,13 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: casa628
+      POSTGRES_USER: casa628
+      POSTGRES_PASSWORD: casa628
+    volumes:
+      - house_postgres:/var/lib/postgresql/data
+volumes:
+  house_postgres:
