@@ -8,7 +8,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.WKTReader;
 import tools.jackson.databind.JsonNode;
 
-/** Converts local metre coordinates only; PDF coordinates are never used. */
+/** Parses GeoJSON-like geometry without applying a coordinate transformation. */
 public final class LocalGeometry {
     private static final GeometryFactory FACTORY = new GeometryFactory();
     private LocalGeometry() {}
