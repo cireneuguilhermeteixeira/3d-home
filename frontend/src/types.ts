@@ -1,5 +1,9 @@
 export type Point = { x: number; y: number }
-export type Site = { width: number; depth: number; boundary: Point[] }
-export type Wall = { id: string; start: Point; end: Point; length: number; height: number; thickness: number; status: string; heightEstimated: boolean; thicknessEstimated: boolean }
-export type DrawingLine = { id: string; layer: string; candidateClass: string; points: Point[] }
-export type Scene = { site: Site; walls: Wall[]; lines: DrawingLine[]; rooms: unknown[]; openings: unknown[]; measurements: unknown[] }
+export type LayoutMode = 'ORIGINAL_LAYOUT' | 'RECTIFIED_LAYOUT'
+export type Site = { width: number; depth: number; boundary: Point[]; layoutMode: LayoutMode }
+export type Wall = { id: string; start: Point; end: Point; length: number; height: number | null; thickness: number; status: string; heightEstimated: boolean; thicknessEstimated: boolean; sourcePathIds: string[]; heightSourceId: string | null }
+export type Opening = { id: string; type: 'WINDOW' | 'DOOR' | 'GATE' | 'UNKNOWN_OPENING'; status: string; wallId: string | null; center: Point; positionAlongWall: number | null; width: number | null; height: number | null; sillHeight: number | null; sourcePathIds: string[]; sourceTextIds: string[]; measurementIds: string[]; annotationId: string | null; subtype: string | null; transomHeight: number | null; spanStart: Point | null; spanEnd: Point | null }
+export type DrawingLine = { id: string; sourcePathId: string; layer: string; candidateClass: string; representedByWall: boolean; points: Point[] }
+export type RoomMarker = { id: string; number: string; name: string | null; center: Point; status: 'REFERENCE_MARKER'; sourceTextId: string; roomType: string }
+export type SemanticElement = { id: string; type: string; status: string; center: Point | null; height: number | null; heightSourceId: string | null; sourceTextIds: string[] }
+export type Scene = { site: Site; walls: Wall[]; lines: DrawingLine[]; rooms: RoomMarker[]; openings: Opening[]; measurements: unknown[]; elements: SemanticElement[] }
