@@ -4,7 +4,7 @@ import { useThree } from '@react-three/fiber'
 import { BufferGeometry, Float32BufferAttribute, Object3D, OrthographicCamera, PerspectiveCamera, Shape } from 'three'
 import type { InstancedMesh } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import type { Opening, Scene, Wall } from '../types'
+import type { AttentionPoint, Opening, Point, Scene, Wall } from '../types'
 
 type Bounds = { width: number; depth: number; centerX: number; centerY: number }
 type Block = { startX: number; startY: number; endX: number; endY: number; bottom: number; height: number; thickness: number; estimated: boolean }
@@ -53,8 +53,7 @@ function CameraControls({ bounds, mode, reset }: { bounds: Bounds; mode: 'cad' |
     screenSpacePanning minDistance={3} maxDistance={130} minZoom={0.5} maxZoom={15} enableRotate={mode === '3d'} />
 }
 
-function Floor3D({ scene }: { scene: Scene }) {
-  const shape = useMemo(() => {
+function siteShape(scene: Scene) {
     const points = scene.site.boundary.length >= 3 ? scene.site.boundary : [
       { x: 0, y: 0 }, { x: scene.site.width, y: 0 },
       { x: scene.site.width, y: scene.site.depth }, { x: 0, y: scene.site.depth }
@@ -63,9 +62,20 @@ function Floor3D({ scene }: { scene: Scene }) {
     points.forEach((point, index) => index === 0 ? result.moveTo(point.x, -point.y) : result.lineTo(point.x, -point.y))
     result.closePath()
     return result
-  }, [scene])
+}
+
+function Floor3D({ scene }: { scene: Scene }) {
+  const shape = useMemo(() => siteShape(scene), [scene])
   return <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
     <shapeGeometry args={[shape]} /><meshStandardMaterial color="#e9edea" roughness={1} side={2} />
+  </mesh>
+}
+
+function PickPlane({ scene, onPick }: { scene: Scene; onPick: (point: Point) => void }) {
+  const shape = useMemo(() => siteShape(scene), [scene])
+  return <mesh position={[0, 0.16, 0]} rotation={[-Math.PI / 2, 0, 0]}
+    onClick={event => { if (event.button !== 0) return; event.stopPropagation(); onPick({ x: event.point.x, y: event.point.z }) }}>
+    <shapeGeometry args={[shape]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} />
   </mesh>
 }
 
@@ -213,7 +223,10 @@ function DrawingLines3D({ scene, mode }: { scene: Scene; mode: 'cad' | '3d' }) {
   return <lineSegments geometry={geometry}><lineBasicMaterial color="#586c73" transparent opacity={mode === 'cad' ? 0.75 : 0.43} depthWrite={false} /></lineSegments>
 }
 
-export function HouseScene({ scene, mode, reset, selectedRoom, onSelectRoom }: { scene: Scene; mode: 'cad' | '3d'; reset: number; selectedRoom: string | null; onSelectRoom: (number: string) => void }) {
+export function HouseScene({ scene, mode, reset, attentionPoints, placing, onPick, onSelectPoint }: {
+  scene: Scene; mode: 'cad' | '3d'; reset: number; attentionPoints: AttentionPoint[];
+  placing: boolean; onPick: (point: Point) => void; onSelectPoint: (id: string) => void
+}) {
   const bounds = useMemo(() => boundsOf(scene), [scene])
   return <>
     <color attach="background" args={["#dfe5e5"]} />
@@ -224,14 +237,14 @@ export function HouseScene({ scene, mode, reset, selectedRoom, onSelectRoom }: {
     <Floor3D scene={scene} />
     {mode === '3d' && <><Walls3D walls={scene.walls} openings={scene.openings} /><Gates3D openings={scene.openings} /></>}
     <DrawingLines3D scene={scene} mode={mode} />
+    {mode === 'cad' && placing && <PickPlane scene={scene} onPick={onPick} />}
     {/* Prime the HTML overlay portal: its first mount can be empty during initial WebGL render. */}
     <Html position={[0, 0, 0]}><span style={{ display: 'none' }} /></Html>
-    {scene.rooms.map(room => <Html key={room.id} position={[room.center.x, mode === 'cad' ? 0.12 : 0.2, room.center.y]}
+    {attentionPoints.filter(point => point.layoutMode === scene.site.layoutMode).map(point => <Html key={point.id}
+      position={[point.position.x, mode === 'cad' ? 0.25 : 0.2, point.position.y]}
       center distanceFactor={mode === '3d' ? 20 : undefined} zIndexRange={[20, 0]}>
-      <button type="button" className={`room-marker${selectedRoom === room.number ? ' selected' : ''}`}
-        title={`Ambiente ${room.number} · referência da planta`} onClick={() => onSelectRoom(room.number)}>
-        {room.number}
-      </button>
+      <button type="button" className="attention-marker" title={`${point.id}: ${point.note}`}
+        onClick={event => { event.stopPropagation(); onSelectPoint(point.id) }}>{point.id}</button>
     </Html>)}
     <CameraControls bounds={bounds} mode={mode} reset={reset} />
   </>

@@ -1,5 +1,6 @@
 export type Point = { x: number; y: number }
 export type LayoutMode = 'ORIGINAL_LAYOUT' | 'RECTIFIED_LAYOUT'
+export type AttentionPoint = { id: string; layoutMode: LayoutMode; position: Point; note: string; roomNumber: string | null }
 export type Site = { width: number; depth: number; boundary: Point[]; layoutMode: LayoutMode }
 export type Wall = { id: string; start: Point; end: Point; length: number; height: number | null; thickness: number; status: string; heightEstimated: boolean; thicknessEstimated: boolean; sourcePathIds: string[]; heightSourceId: string | null }
 export type Opening = { id: string; type: 'WINDOW' | 'DOOR' | 'GATE' | 'UNKNOWN_OPENING'; status: string; wallId: string | null; center: Point; positionAlongWall: number | null; width: number | null; height: number | null; sillHeight: number | null; sourcePathIds: string[]; sourceTextIds: string[]; measurementIds: string[]; annotationId: string | null; subtype: string | null; transomHeight: number | null; spanStart: Point | null; spanEnd: Point | null }

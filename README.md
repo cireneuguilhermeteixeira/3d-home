@@ -30,7 +30,13 @@ Requisitos: Java 21+, Maven, Node.js 20+, npm e Docker com Compose.
    npm run dev
    ```
 
-Use **Vista superior**, **Vista 3D** e **Centralizar**. Arraste para girar, use o botão direito para mover e a roda para aproximar. A vista 3D também pode ser aberta diretamente em `http://localhost:5173/?view=3d`. Os marcadores **1–6** vêm das anotações do desenho e servem para localizar correções por ambiente. Eles ainda não definem os limites ou nomes dos cômodos.
+Use **Vista superior**, **Vista 3D** e **Centralizar**. Arraste para girar, use o botão direito para mover e a roda para aproximar. A vista 3D também pode ser aberta diretamente em `http://localhost:5173/?view=3d`. Os marcadores numéricos originais não são mais desenhados sobre a planta; as referências 1–6 continuam disponíveis na API para identificar o ambiente ao registrar uma correção.
+
+### Registrar pontos de atenção
+
+Clique em **Adicionar ponto**, depois no local da planta e descreva a correção no formulário. O campo de ambiente é opcional. Cada ponto recebe um ID como `P001` e coordenadas métricas no modo **Original** ou **Retificada** que estava selecionado. Use **Copiar todos para enviar** e cole o JSON na conversa para solicitar as correções. O JSON também pode ser selecionado manualmente em **Ver JSON para copiar**, e cada salvamento aparece no console do navegador.
+
+Os pontos ficam no armazenamento local do navegador; recarregar a página não os apaga. Eles podem ser editados ou excluídos pelo marcador ou pela lista lateral. O arquivo vetorial original e as tabelas do PostGIS não são alterados por esses apontamentos.
 
 O seletor **Original** preserva a inclinação visual do PDF; **Retificada** aplica o cisalhamento da calibração afim do JSON. A inclinação no PDF, por si só, não comprova a forma física exata do terreno. A API mantém `GET /api/house/scene`, com `?layout=ORIGINAL_LAYOUT` (padrão) ou `?layout=RECTIFIED_LAYOUT`.
 
@@ -53,7 +59,7 @@ O seletor **Original** preserva a inclinação visual do PDF; **Retificada** apl
 
 ## Alcance dos dados
 
-O JSON real contém 1.096 caminhos vetoriais, 35 grupos semânticos, 6 marcadores de cômodo e 69 referências de altura. O backend reconstrói paredes a partir de pares de faces de alvenaria, grava os eixos, espessuras e IDs dos caminhos de origem em tabelas derivadas do PostGIS e reprocessa o mesmo projeto sem duplicatas. As aberturas preservam suas referências de anotação, texto, caminho e medida. `UNKNOWN_OPENING` e `ANNOTATION_ONLY` indicam evidência insuficiente para abrir um vão. Algumas paredes ainda podem aparecer apenas como linha quando não existe um segundo contorno confiável; os marcadores numéricos permitem apontar esses locais.
+O JSON real contém 1.096 caminhos vetoriais, 35 grupos semânticos, 6 marcadores de cômodo e 69 referências de altura. O backend reconstrói paredes a partir de pares de faces de alvenaria, grava os eixos, espessuras e IDs dos caminhos de origem em tabelas derivadas do PostGIS e reprocessa o mesmo projeto sem duplicatas. As aberturas preservam suas referências de anotação, texto, caminho e medida. `UNKNOWN_OPENING` e `ANNOTATION_ONLY` indicam evidência insuficiente para abrir um vão. Algumas paredes ainda podem aparecer apenas como linha quando não existe um segundo contorno confiável; registre pontos de atenção nesses locais para revisão.
 
 Alturas desconhecidas ficam `null` no banco e na API. A visualização 3D usa 2,80 m apenas como altura provisória de parede e 2,10 m para portas sem altura anotada. Uma medida `PDL`, `PDV`, `PDF` ou `PDT` não vira automaticamente altura de porta ou parede próxima. `PD` vira peitoril apenas no contexto de janela. A cozinha é identificada pelo marcador 3 fornecido no JSON. Sua janela basculante e a porta contígua têm spans separados; a janela do cômodo 5 conserva peitoril e bandeirola; três janelas de madeira continuam vinculadas. Oito das nove janelas têm vínculo geométrico; a janela de vidro `ann-014` permanece pendente porque a parede superior não foi consolidada. Quatro portas têm vínculo geométrico: uma anotada, a porta da cozinha indicada pelo proprietário e duas reconhecidas por folha retangular junto a uma interrupção de parede. Os dois portões de correr e os três portões metálicos têm spans candidatos e painéis visuais. O portão metálico superior foi separado do vão de `ann-014` pela verificação das ombreiras e da janela anotada. Das 69 cotas, 26 estão ligadas a anotações de aberturas e 24 dessas têm vínculo geométrico. O modo CAD mostra os traços originais; o modo 3D extruda somente paredes reconstruídas. Os marcadores 1–6 têm status `REFERENCE_MARKER`, não representam cômodos reconstruídos.
 
