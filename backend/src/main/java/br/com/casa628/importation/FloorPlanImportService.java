@@ -2,6 +2,7 @@ package br.com.casa628.importation;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 import br.com.casa628.geometry.LayoutMode;
@@ -95,7 +96,30 @@ public class FloorPlanImportService {
             if (constraints.isObject()) jdbc.update("INSERT INTO house_semantic_item(project_id,kind,source_id,original_json) VALUES (?,?,?,?::jsonb)",
                     id, "VERTICAL_CONSTRAINTS", "default", constraints.toString());
         }
+        importOwnerCorrections(id, transform);
         processing.rebuild(id);
+    }
+
+    private void importOwnerCorrections(String projectId, LayoutTransform transform) throws Exception {
+        try (InputStream stream = getClass().getResourceAsStream("/casa628_owner_corrections.json")) {
+            if (stream == null) return;
+            JsonNode items = mapper.readTree(stream).path("corrections");
+            if (!items.isArray()) throw new IllegalArgumentException("Correções do proprietário inválidas");
+            Set<String> ids = new HashSet<>();
+            for (JsonNode item : items) {
+                String sourceId = item.path("id").asText();
+                JsonNode position = item.path("position_original_m");
+                if (sourceId.isBlank() || !ids.add(sourceId) || !position.isArray() || position.size() != 2 ||
+                        !position.get(0).isNumber() || !position.get(1).isNumber())
+                    throw new IllegalArgumentException("Ponto de correção inválido: " + sourceId);
+                double x = position.get(0).asDouble(), y = position.get(1).asDouble();
+                Coordinate original = transform.fromOriginalMetric(x, y, LayoutMode.ORIGINAL_LAYOUT);
+                Coordinate rectified = transform.fromOriginalMetric(x, y, LayoutMode.RECTIFIED_LAYOUT);
+                jdbc.update("INSERT INTO house_semantic_item(project_id,kind,source_id,original_json,geom,geom_original) VALUES (?,?,?,?::jsonb,ST_GeomFromText(?,0),ST_GeomFromText(?,0))",
+                        projectId, "OWNER_CORRECTION", sourceId, item.toString(),
+                        geometryFactory.createPoint(rectified).toText(), geometryFactory.createPoint(original).toText());
+            }
+        }
     }
 
     private void importSemanticItems(String projectId, JsonNode items, String kind, LayoutTransform transform) {

@@ -104,7 +104,7 @@ public class HouseSceneService {
                             original, links.getOrDefault(id, List.of()));
                 }).toList();
         String annotationColumn = mode == LayoutMode.ORIGINAL_LAYOUT ? "geom_original" : "geom";
-        List<Element> elements = jdbc.query("SELECT source_id,original_json::text,ST_AsText(" + annotationColumn + ") FROM house_semantic_item WHERE project_id=? AND kind='ANNOTATION' ORDER BY source_id",
+        List<Element> elements = jdbc.query("SELECT source_id,original_json::text,ST_AsText(" + annotationColumn + "),kind FROM house_semantic_item WHERE project_id=? AND (kind='ANNOTATION' OR (kind='OWNER_CORRECTION' AND original_json->>'element_type'='FURNITURE_ACCESS')) ORDER BY source_id",
                 (rs, row) -> {
                     JsonNode data = mapper.readTree(rs.getString(2));
                     String type = data.path("element_type").asText();
@@ -116,7 +116,8 @@ public class HouseSceneService {
                         break;
                     }
                     Geometry geometry = parse(rs.getString(3));
-                    return new Element(rs.getString(1), type, data.path("classification_status").asText("ANNOTATION_ONLY"),
+                    return new Element(rs.getString(1), type, "OWNER_CORRECTION".equals(rs.getString(4)) ?
+                            "OWNER_REFERENCE" : data.path("classification_status").asText("ANNOTATION_ONLY"),
                             geometry == null ? null : point(geometry.getCoordinate()), height, heightId,
                             ids(data.path("source_text_ids").toString()));
                 }, projectId).stream().filter(e -> e != null).toList();

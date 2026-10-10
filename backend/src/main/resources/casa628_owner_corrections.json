@@ -1,0 +1,87 @@
+{
+  "coordinate_system": "ORIGINAL_LAYOUT_METERS",
+  "corrections": [
+    {
+      "id": "P001",
+      "element_type": "DOOR",
+      "message": "Deve ser uma porta e nao uma janela",
+      "position_original_m": [6.246, 15.91]
+    },
+    {
+      "id": "P002",
+      "element_type": "WINDOW",
+      "target_annotation_id": "ann-022",
+      "relocate": true,
+      "message": "Deve ser uma janela e nao uma porta. JANELA ABRIR h:0,80m PD:1,18m h: BANDEIROLA:0,20m",
+      "position_original_m": [5.222, 17.635]
+    },
+    {
+      "id": "P003",
+      "element_type": "DOOR",
+      "target_annotation_id": "user-room3-bottom-door",
+      "message": "temos o vao mas nao temos uma porta, aqui deveria ser uma porta.",
+      "position_original_m": [4.754, 15.88]
+    },
+    {
+      "id": "P004",
+      "element_type": "FURNITURE_ACCESS",
+      "message": "aqui deve ser um movel planejado por isso esssa entrada",
+      "position_original_m": [2.487, 12.564]
+    },
+    {
+      "id": "P005",
+      "element_type": "DOOR",
+      "target_annotation_id": "geometry:59989a47-6161-5709-b350-dfcac5a51710",
+      "message": "aqui faltou uma porta",
+      "position_original_m": [4.155, 7.792]
+    },
+    {
+      "id": "P006",
+      "element_type": "DOOR",
+      "target_annotation_id": "ann-013",
+      "message": "aqui tbm faltou uma porta",
+      "position_original_m": [4.011, 5.282]
+    },
+    {
+      "id": "P007",
+      "element_type": "DOOR",
+      "message": "Aqui tbm faltou uma porta.",
+      "position_original_m": [6.811, 14.665],
+      "wall_axis_original_m": [[6.218, 14.721], [7.337, 14.721]],
+      "wall_thickness_m": 0.18,
+      "opening_span_original_m": [[6.445, 14.721], [7.117, 14.721]],
+      "source_path_ids": [
+        "3713d17c-8e6e-522f-8f9d-f878ffadb487",
+        "d441da6e-c3d6-52b4-b75a-90f365fb04d9",
+        "7cc86c3d-6a05-573e-8e34-72b7081f0094",
+        "d717fe1c-be39-5536-b7b2-b4c7da6d9d77"
+      ],
+      "opening_path_ids": ["92d6b247-b2e8-5828-b6b3-ce4a63765110"]
+    },
+    {
+      "id": "P008",
+      "element_type": "WINDOW",
+      "target_annotation_id": "ann-014",
+      "message": "Aqui faltou uma parede e uma janela",
+      "position_original_m": [2.641, 2.502],
+      "wall_axis_original_m": [[1.163, 2.447], [4.165, 2.447]],
+      "wall_thickness_m": 0.374,
+      "opening_span_original_m": [[1.705, 2.447], [3.222, 2.447]],
+      "source_path_ids": [
+        "05ea916f-55c7-5493-964f-37452202da7f",
+        "2bd84120-c53a-5db5-90d5-5a7d2f23a6a4",
+        "3c8a0bd0-7bae-542c-8537-af7584d6e2d4",
+        "eff1569d-0d00-5a28-a0f0-c211699fac79",
+        "550f2135-d8b1-53eb-8351-cbf9d95c782e",
+        "c81bfee3-555f-507d-bf7b-9d1d06f35313"
+      ]
+    },
+    {
+      "id": "P009",
+      "element_type": "WINDOW",
+      "message": "aqui eh uma janela,e na parte um pouco superior eh uma porta",
+      "position_original_m": [8.321, 31.442],
+      "pending_detail": "A porta superior precisa de um ponto separado para definir seu vao."
+    }
+  ]
+}

@@ -38,6 +38,11 @@ public final class LayoutTransform {
         return apply(point[0], point[1], mode);
     }
 
+    /** Owner points are in the original metric layout; invert to PDF before choosing a layout. */
+    public Coordinate fromOriginalMetric(double x, double y, LayoutMode mode) {
+        return apply(frontX + x / scaleX, frontY + y / scaleY, mode);
+    }
+
     private static double[] pair(JsonNode node) {
         if (!node.isArray() || node.size() < 2 || !node.get(0).isNumber() || !node.get(1).isNumber())
             throw new IllegalArgumentException("Coordenada PDF obrigatória ausente");
