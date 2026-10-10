@@ -146,7 +146,7 @@ export default function HouseViewer3D() {
       </div>}
     </section>
     <footer className="statusbar">
-      <div className="status-items"><span><b>{counts.paths}</b> trechos vetoriais</span><span><b>{counts.walls}</b> paredes consolidadas</span><span><b>{counts.windows}</b> janelas anotadas</span><span><b>{counts.doors}</b> portas identificadas</span><span><b>{counts.gates}</b> portões com span candidato</span></div>
+      <div className="status-items"><span><b>{counts.paths}</b> trechos vetoriais</span><span><b>{counts.walls}</b> paredes consolidadas</span><span><b>{counts.windows}</b> janelas identificadas</span><span><b>{counts.doors}</b> portas identificadas</span><span><b>{counts.gates}</b> portões com vão candidato</span></div>
       <div className="legend"><span><i className="swatch wall"/> Faces pareadas</span><span><i className="swatch estimated"/> Altura visual provisória</span><span><i className="swatch line"/> Referência vetorial</span></div>
       <p>Arraste para girar · botão direito para mover · roda para ampliar</p>
     </footer>

@@ -11,6 +11,9 @@ type Block = { startX: number; startY: number; endX: number; endY: number; botto
 type Cut = { start: number; end: number; sill: number; mainTop: number; top: number; opening: Opening }
 const configuredDoorHeight = Number(import.meta.env.VITE_VISUAL_DOOR_HEIGHT ?? 2.1)
 const VISUAL_DOOR_HEIGHT = Number.isFinite(configuredDoorHeight) && configuredDoorHeight > 0 ? configuredDoorHeight : 2.1
+// These display dimensions are provisional; the database retains unknown source values.
+const VISUAL_UNMEASURED_WINDOW_HEIGHT = 1.0
+const VISUAL_UNMEASURED_WINDOW_SILL = 1.0
 
 function boundsOf(scene: Scene): Bounds {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -81,13 +84,16 @@ function PickPlane({ scene, onPick }: { scene: Scene; onPick: (point: Point) => 
 
 function cutsFor(wall: Wall, openings: Opening[], visualHeight: number): Cut[] {
   const cuts = openings.filter(opening => opening.wallId === wall.id && opening.positionAlongWall !== null &&
-    opening.width !== null && (opening.height !== null || opening.type === 'DOOR') && opening.type !== 'UNKNOWN_OPENING')
+    opening.width !== null && (opening.height !== null || opening.type === 'DOOR' || opening.annotationId === 'P009') &&
+    opening.type !== 'UNKNOWN_OPENING')
     .map(opening => {
-      const sill = opening.type === 'WINDOW' ? opening.sillHeight : 0
+      const sill = opening.type === 'WINDOW'
+        ? (opening.sillHeight ?? (opening.annotationId === 'P009' ? VISUAL_UNMEASURED_WINDOW_SILL : null)) : 0
       if (sill === null) return null
       const start = Math.max(0, opening.positionAlongWall! - opening.width! / 2)
       const end = Math.min(wall.length, opening.positionAlongWall! + opening.width! / 2)
-      const mainTop = sill + (opening.height ?? VISUAL_DOOR_HEIGHT)
+      const mainTop = sill + (opening.height ?? (opening.type === 'WINDOW'
+        ? VISUAL_UNMEASURED_WINDOW_HEIGHT : VISUAL_DOOR_HEIGHT))
       const top = mainTop + (opening.transomHeight ?? 0)
       if (end - start < 0.25 || top >= visualHeight - 0.05) return null
       return { start, end, sill, mainTop, top, opening }
@@ -167,8 +173,11 @@ function Walls3D({ walls, openings }: { walls: Wall[]; openings: Opening[] }) {
             <meshStandardMaterial color="#91b8bf" transparent opacity={0.34} depthWrite={false} /></mesh>}
           <OpeningFrame width={width} bottom={cut.sill} top={cut.top} divider={cut.opening.transomHeight ? cut.mainTop : null} />
         </> : <>
-          <mesh position={[0, mainHeight / 2, 0.015]}><boxGeometry args={[width - 0.08, mainHeight - 0.06, 0.045]} />
-            <meshStandardMaterial color="#8d9d9d" roughness={0.82} /></mesh>
+          <mesh position={[0, mainHeight / 2, 0.035]}><boxGeometry args={[width - 0.08, mainHeight - 0.06, 0.055]} />
+            <meshStandardMaterial color={cut.opening.subtype === 'WOODEN_DOOR' ? '#8a654b' : '#7c6858'} roughness={0.78} /></mesh>
+          <mesh position={[Math.max(0.08, width / 2 - 0.18), Math.min(1.03, mainHeight / 2), 0.071]}>
+            <sphereGeometry args={[0.035, 8, 6]} /><meshStandardMaterial color="#d9c29a" metalness={0.55} roughness={0.36} />
+          </mesh>
           {cut.opening.transomHeight && <mesh position={[0, cut.mainTop + cut.opening.transomHeight / 2, 0]}>
             <boxGeometry args={[width - 0.06, cut.opening.transomHeight - 0.03, 0.025]} />
             <meshStandardMaterial color="#91b8bf" transparent opacity={0.32} depthWrite={false} /></mesh>}
