@@ -5,6 +5,7 @@ import { BufferGeometry, Float32BufferAttribute, Object3D, OrthographicCamera, P
 import type { InstancedMesh } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import type { AttentionPoint, Opening, Point, Scene, Wall } from '../types'
+import { WalkControls } from './WalkControls'
 
 type Bounds = { width: number; depth: number; centerX: number; centerY: number }
 type Block = { startX: number; startY: number; endX: number; endY: number; bottom: number; height: number; thickness: number; estimated: boolean }
@@ -150,7 +151,7 @@ function BlockInstances({ blocks, color }: { blocks: Block[]; color: string }) {
   </instancedMesh>
 }
 
-function Walls3D({ walls, openings }: { walls: Wall[]; openings: Opening[] }) {
+function Walls3D({ walls, openings, walking }: { walls: Wall[]; openings: Opening[]; walking: boolean }) {
   const { blocks, openingCuts } = useMemo(() => blocksFor(walls, openings), [walls, openings])
   const measured = useMemo(() => blocks.filter(block => !block.estimated), [blocks])
   const estimated = useMemo(() => blocks.filter(block => block.estimated), [blocks])
@@ -173,11 +174,17 @@ function Walls3D({ walls, openings }: { walls: Wall[]; openings: Opening[] }) {
             <meshStandardMaterial color="#91b8bf" transparent opacity={0.34} depthWrite={false} /></mesh>}
           <OpeningFrame width={width} bottom={cut.sill} top={cut.top} divider={cut.opening.transomHeight ? cut.mainTop : null} />
         </> : <>
-          <mesh position={[0, mainHeight / 2, 0.035]}><boxGeometry args={[width - 0.08, mainHeight - 0.06, 0.055]} />
-            <meshStandardMaterial color={cut.opening.subtype === 'WOODEN_DOOR' ? '#8a654b' : '#7c6858'} roughness={0.78} /></mesh>
-          <mesh position={[Math.max(0.08, width / 2 - 0.18), Math.min(1.03, mainHeight / 2), 0.071]}>
-            <sphereGeometry args={[0.035, 8, 6]} /><meshStandardMaterial color="#d9c29a" metalness={0.55} roughness={0.36} />
-          </mesh>
+          <group position={walking ? [-width / 2 + 0.04, 0, 0] : [0, 0, 0]}
+            rotation={walking ? [0, -1.2, 0] : [0, 0, 0]}>
+            <mesh position={walking ? [(width - 0.08) / 2, mainHeight / 2, 0.035] : [0, mainHeight / 2, 0.035]}>
+              <boxGeometry args={[width - 0.08, mainHeight - 0.06, 0.055]} />
+              <meshStandardMaterial color={cut.opening.subtype === 'WOODEN_DOOR' ? '#8a654b' : '#7c6858'} roughness={0.78} />
+            </mesh>
+            <mesh position={walking ? [width - 0.18, Math.min(1.03, mainHeight / 2), 0.071] :
+              [Math.max(0.08, width / 2 - 0.18), Math.min(1.03, mainHeight / 2), 0.071]}>
+              <sphereGeometry args={[0.035, 8, 6]} /><meshStandardMaterial color="#d9c29a" metalness={0.55} roughness={0.36} />
+            </mesh>
+          </group>
           {cut.opening.transomHeight && <mesh position={[0, cut.mainTop + cut.opening.transomHeight / 2, 0]}>
             <boxGeometry args={[width - 0.06, cut.opening.transomHeight - 0.03, 0.025]} />
             <meshStandardMaterial color="#91b8bf" transparent opacity={0.32} depthWrite={false} /></mesh>}
@@ -232,9 +239,10 @@ function DrawingLines3D({ scene, mode }: { scene: Scene; mode: 'cad' | '3d' }) {
   return <lineSegments geometry={geometry}><lineBasicMaterial color="#586c73" transparent opacity={mode === 'cad' ? 0.75 : 0.43} depthWrite={false} /></lineSegments>
 }
 
-export function HouseScene({ scene, mode, reset, attentionPoints, placing, onPick, onSelectPoint }: {
-  scene: Scene; mode: 'cad' | '3d'; reset: number; attentionPoints: AttentionPoint[];
-  placing: boolean; onPick: (point: Point) => void; onSelectPoint: (id: string) => void
+export function HouseScene({ scene, mode, reset, attentionPoints, placing, onPick, onSelectPoint, walkActive, onWalkActiveChange }: {
+  scene: Scene; mode: 'cad' | '3d' | 'walk'; reset: number; attentionPoints: AttentionPoint[];
+  placing: boolean; onPick: (point: Point) => void; onSelectPoint: (id: string) => void;
+  walkActive: boolean; onWalkActiveChange: (active: boolean) => void
 }) {
   const bounds = useMemo(() => boundsOf(scene), [scene])
   return <>
@@ -244,17 +252,18 @@ export function HouseScene({ scene, mode, reset, attentionPoints, placing, onPic
       castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-30} shadow-camera-right={30}
       shadow-camera-top={35} shadow-camera-bottom={-35} shadow-bias={-0.0004} shadow-radius={3} />
     <Floor3D scene={scene} />
-    {mode === '3d' && <><Walls3D walls={scene.walls} openings={scene.openings} /><Gates3D openings={scene.openings} /></>}
-    <DrawingLines3D scene={scene} mode={mode} />
+    {mode !== 'cad' && <><Walls3D walls={scene.walls} openings={scene.openings} walking={mode === 'walk'} /><Gates3D openings={scene.openings} /></>}
+    {mode !== 'walk' && <DrawingLines3D scene={scene} mode={mode} />}
     {mode === 'cad' && placing && <PickPlane scene={scene} onPick={onPick} />}
     {/* Prime the HTML overlay portal: its first mount can be empty during initial WebGL render. */}
     <Html position={[0, 0, 0]}><span style={{ display: 'none' }} /></Html>
-    {attentionPoints.filter(point => point.layoutMode === scene.site.layoutMode).map(point => <Html key={point.id}
+    {mode !== 'walk' && attentionPoints.filter(point => point.layoutMode === scene.site.layoutMode).map(point => <Html key={point.id}
       position={[point.position.x, mode === 'cad' ? 0.25 : 0.2, point.position.y]}
       center distanceFactor={mode === '3d' ? 20 : undefined} zIndexRange={[20, 0]}>
       <button type="button" className="attention-marker" title={`${point.id}: ${point.note}`}
         onClick={event => { event.stopPropagation(); onSelectPoint(point.id) }}>{point.id}</button>
     </Html>)}
-    <CameraControls bounds={bounds} mode={mode} reset={reset} />
+    {mode === 'walk' ? <WalkControls scene={scene} reset={reset} active={walkActive} onActiveChange={onWalkActiveChange} /> :
+      <CameraControls bounds={bounds} mode={mode} reset={reset} />}
   </>
 }

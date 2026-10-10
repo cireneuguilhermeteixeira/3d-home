@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "dev": "vite --host 0.0.0.0", "build": "tsc -b && vite build" },
+  "scripts": { "dev": "vite --host 0.0.0.0", "build": "tsc -b && vite build", "test:walk": "node scripts/validate-walk.mjs" },
   "dependencies": {
     "@react-three/drei": "^10.7.0",
     "@react-three/fiber": "^9.3.0",

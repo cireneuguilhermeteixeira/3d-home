@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { HouseScene } from './HouseScene'
 import type { AttentionPoint, LayoutMode, Point, Scene } from '../types'
 
-type ViewMode = 'cad' | '3d'
+type ViewMode = 'cad' | '3d' | 'walk'
 const STORAGE_KEY = 'casa628.attention-points.v1'
 
 function loadAttentionPoints(): AttentionPoint[] {
@@ -26,9 +26,13 @@ function exportPoint(point: AttentionPoint) {
 export default function HouseViewer3D() {
   const [scene, setScene] = useState<Scene | null>(null)
   const [error, setError] = useState('')
-  const [mode, setMode] = useState<ViewMode>(new URLSearchParams(window.location.search).get('view') === '3d' ? '3d' : 'cad')
+  const [mode, setMode] = useState<ViewMode>(() => {
+    const requested = new URLSearchParams(window.location.search).get('view')
+    return requested === '3d' || requested === 'walk' ? requested : 'cad'
+  })
   const [layout, setLayout] = useState<LayoutMode>('ORIGINAL_LAYOUT')
   const [reset, setReset] = useState(0)
+  const [walkActive, setWalkActive] = useState(false)
   const [attentionPoints, setAttentionPoints] = useState(loadAttentionPoints)
   const [placing, setPlacing] = useState(false)
   const [draft, setDraft] = useState<AttentionPoint | null>(null)
@@ -80,6 +84,18 @@ export default function HouseViewer3D() {
     try { await navigator.clipboard.writeText(value); setCopyStatus('Copiado. Cole os dados na conversa.') }
     catch { setCopyStatus('Selecione o JSON abaixo e copie manualmente.') }
   }
+  const changeMode = (next: ViewMode) => {
+    if (next !== 'walk' && document.pointerLockElement) document.exitPointerLock()
+    setWalkActive(false)
+    setMode(next)
+    setPlacing(false)
+  }
+  const enterWalk = () => {
+    const canvas = document.querySelector<HTMLCanvasElement>('.workspace canvas')
+    if (!canvas) return
+    if (!canvas.requestPointerLock) { setWalkActive(true); return }
+    canvas.requestPointerLock().catch(() => setWalkActive(true))
+  }
 
   return <main className="app-shell">
     <header className="topbar">
@@ -89,25 +105,38 @@ export default function HouseViewer3D() {
     <section className={'workspace' + (placing ? ' placing-point' : '')} aria-label="Visualização da casa">
       {scene && !empty && <Canvas key={mode} orthographic={mode === 'cad'} shadows dpr={[1, 2]} gl={{ antialias: true }}>
         <HouseScene scene={scene} mode={mode} reset={reset} attentionPoints={attentionPoints} placing={placing}
+          walkActive={walkActive} onWalkActiveChange={setWalkActive}
           onPick={pickPoint} onSelectPoint={id => { setPlacing(false); setDraft(attentionPoints.find(point => point.id === id) ?? null) }} />
       </Canvas>}
       {!scene && !error && <div className="state-message">Carregando a planta…</div>}
       {error && <div className="state-message error">{error}</div>}
       {empty && <div className="state-message">Nenhuma geometria importada. Defina <code>HOUSE_IMPORT_FILE</code> e reinicie o backend.</div>}
-      {scene && !empty && <div className="canvas-label">{placing ? 'CLIQUE NA PLANTA PARA MARCAR' : mode === 'cad' ? 'PLANTA · MODO CAD' : 'MODELO · VISTA 3D'}</div>}
+      {scene && !empty && <div className="canvas-label">{placing ? 'CLIQUE NA PLANTA PARA MARCAR' :
+        mode === 'cad' ? 'PLANTA · MODO CAD' : mode === '3d' ? 'MODELO · VISTA 3D' : 'CAMINHADA · PRIMEIRA PESSOA'}</div>}
       <div className="layout-controls" aria-label="Transformação da planta">
         <span>GEOMETRIA</span>
         <button type="button" className={layout === 'ORIGINAL_LAYOUT' ? 'active' : ''} onClick={() => { setLayout('ORIGINAL_LAYOUT'); setPlacing(false) }}>Original</button>
         <button type="button" className={layout === 'RECTIFIED_LAYOUT' ? 'active' : ''} onClick={() => { setLayout('RECTIFIED_LAYOUT'); setPlacing(false) }}>Retificada</button>
       </div>
       <div className="view-controls" aria-label="Controles da câmera">
-        <button type="button" className={mode === 'cad' ? 'active' : ''} onClick={() => setMode('cad')}>Vista superior · CAD</button>
-        <button type="button" className={mode === '3d' ? 'active' : ''} onClick={() => { setMode('3d'); setPlacing(false) }}>Vista 3D</button>
+        <button type="button" className={mode === 'cad' ? 'active' : ''} onClick={() => changeMode('cad')}>Vista superior · CAD</button>
+        <button type="button" className={mode === '3d' ? 'active' : ''} onClick={() => changeMode('3d')}>Vista 3D</button>
+        <button type="button" className={mode === 'walk' ? 'active' : ''} onClick={() => changeMode('walk')}>Caminhar pela casa</button>
         <span className="control-divider" aria-hidden="true" />
-        <button type="button" onClick={() => setReset(value => value + 1)}>Centralizar</button>
+        <button type="button" onClick={() => setReset(value => value + 1)}>{mode === 'walk' ? 'Voltar ao início' : 'Centralizar'}</button>
       </div>
+      {mode === 'walk' && <>
+        {!walkActive && <div className="walk-entry"><strong>Explore a casa em primeira pessoa</strong>
+          <p>Use W A S D para andar e o mouse para olhar ao redor. As paredes bloqueiam a passagem; atravesse as portas.</p>
+          <button type="button" onClick={enterWalk}>Entrar e explorar</button>
+          <small>Pressione Esc para liberar o mouse.</small>
+        </div>}
+        {walkActive && <><div className="walk-reticle" aria-hidden="true" /><div className="walk-instructions" role="note">
+          <strong>Dentro da casa</strong><span>W A S D · mover &nbsp; Mouse · olhar &nbsp; Shift · acelerar &nbsp; Esc · sair</span>
+        </div></>}
+      </>}
       <div className="compass" aria-hidden="true"><span>N</span><i /></div>
-      <aside className="attention-panel" aria-label="Pontos de atenção">
+      {mode !== 'walk' && <aside className="attention-panel" aria-label="Pontos de atenção">
         <strong>Pontos de atenção</strong>
         <p>Marque um local e descreva a correção. As coordenadas ficam em metros no modo selecionado.</p>
         <button type="button" className="attention-add" onClick={placing ? () => setPlacing(false) : startPlacing}>
@@ -122,7 +151,7 @@ export default function HouseViewer3D() {
           <details><summary>Ver JSON para copiar</summary><textarea readOnly value={exportText} aria-label="Pontos de atenção em JSON" /></details>
         </>}
         {copyStatus && <small className="copy-status" role="status">{copyStatus}</small>}
-      </aside>
+      </aside>}
       {draft && <div className="attention-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setDraft(null) }}>
         <form className="attention-dialog" role="dialog" aria-modal="true" aria-label={'Ponto de atenção ' + draft.id}
           onSubmit={event => { event.preventDefault(); savePoint() }}>
@@ -148,7 +177,8 @@ export default function HouseViewer3D() {
     <footer className="statusbar">
       <div className="status-items"><span><b>{counts.paths}</b> trechos vetoriais</span><span><b>{counts.walls}</b> paredes consolidadas</span><span><b>{counts.windows}</b> janelas identificadas</span><span><b>{counts.doors}</b> portas identificadas</span><span><b>{counts.gates}</b> portões com vão candidato</span></div>
       <div className="legend"><span><i className="swatch wall"/> Faces pareadas</span><span><i className="swatch estimated"/> Altura visual provisória</span><span><i className="swatch line"/> Referência vetorial</span></div>
-      <p>Arraste para girar · botão direito para mover · roda para ampliar</p>
+      <p>{mode === 'walk' ? 'W A S D · mouse para olhar · portas abertas permitem passagem' :
+        'Arraste para girar · botão direito para mover · roda para ampliar'}</p>
     </footer>
   </main>
 }
