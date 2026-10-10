@@ -97,10 +97,11 @@ public class ArchitecturalProcessingService {
             List<Opening> openings = new ArrayList<>(openings(paths, labels, measures, walls, mode));
             bridgeDocumentedWindows(walls, openings, mode);
             applySemanticAnnotations(projectId, mode, paths, walls, openings, transform);
-            Set<String> closedWalls = closeJunctions(projectId, mode, walls, openings);
+            Set<String> closedWalls = closeJunctions(projectId, mode, transform, walls, openings);
             for (Wall wall : walls) jdbc.update("INSERT INTO house_derived_wall(project_id,layout_mode,id,source_path_ids,axis,thickness,height,height_source_id,status) VALUES (?,?,?,?::jsonb,ST_GeomFromText(?,0),?,NULL,NULL,?)",
                     projectId, mode.name(), wall.id(), json(wall.sourcePathIds()), wall.axis().toText(), wall.thickness(),
-                    wall.id().equals(stableId(mode + ":owner-wall:P007")) || wall.id().equals(stableId(mode + ":owner-wall:P008"))
+                    wall.id().equals(stableId(mode + ":owner-wall:P007")) || wall.id().equals(stableId(mode + ":owner-wall:P008")) ||
+                            wall.id().equals(stableId(mode + ":owner-wall:R2-P005"))
                             ? "OWNER_CONFIRMED" : closedWalls.contains(wall.id()) ? "JUNCTION_CLOSED" :
                             openings.stream().anyMatch(o -> wall.id().equals(o.wallId)) ? "FACE_PAIR_WITH_OPENING" : "FACE_PAIR");
             for (Opening opening : openings)
@@ -155,7 +156,8 @@ public class ArchitecturalProcessingService {
 
     private static Opening withWall(Opening opening, Wall wall) {
         return new Opening(opening.id, opening.pathIds, opening.textIds, opening.measureIds, wall.id(),
-                opening.type, opening.status.startsWith("ASSOCIATED") ? opening.status : "ASSOCIATED",
+                opening.type, opening.status.startsWith("ASSOCIATED") || opening.status.startsWith("OWNER")
+                        ? opening.status : "ASSOCIATED",
                 opening.center, position(opening.center, wall.axis()),
                 opening.width, opening.height, opening.sill, opening.annotationId, opening.subtype,
                 opening.transomHeight, opening.span);
@@ -229,7 +231,7 @@ public class ArchitecturalProcessingService {
         applyOwnerCorrections(projectId, mode, paths, walls, openings, transform);
         // Label positions and paired-face interruptions support these distinct wall spans.
         for (String id : List.of("ann-015", "ann-016", "ann-017",
-                "ann-021", "user-room3-bottom-door", "P001", "ann-022", "P009"))
+                "ann-021", "user-room3-bottom-door", "P001", "ann-022", "P009", "ann-013", "R2-P003"))
             for (int i = 0; i < openings.size(); i++)
                 if (id.equals(openings.get(i).annotationId)) {
                     Opening linked = bridgeGap(openings.get(i), walls, openings, mode);
@@ -284,18 +286,21 @@ public class ArchitecturalProcessingService {
             Opening old = index < 0 ? null : openings.get(index);
             // A door inferred from its leaf is only created by bridgeGeometricDoors below.
             if (!target.isBlank() && old == null && !data.path("wall_axis_original_m").isArray()) continue;
-            if ("FURNITURE_ACCESS".equals(correction.elementType)) continue;
+            if ("FURNITURE_ACCESS".equals(correction.elementType) ||
+                    "WALL_JUNCTION".equals(correction.elementType)) continue;
             if (data.path("wall_axis_original_m").isArray()) {
                 LineString axis = ownerLine(data.path("wall_axis_original_m"), transform, mode);
-                LineString span = ownerLine(data.path("opening_span_original_m"), transform, mode);
+                boolean wallOnly = "WALL_SEGMENT".equals(correction.elementType);
+                LineString span = wallOnly ? null : ownerLine(data.path("opening_span_original_m"), transform, mode);
                 double thickness = data.path("wall_thickness_m").asDouble(0);
-                if (thickness < 0.08 || thickness > 0.4 || span.getLength() < 0.4)
+                if (thickness < 0.08 || thickness > 0.45 || (!wallOnly && span.getLength() < 0.4))
                     throw new IllegalArgumentException("Geometria de correção inválida: " + correction.id);
                 List<String> wallSources = strings(data.path("source_path_ids"));
                 if (wallSources.isEmpty() || !availablePaths.containsAll(wallSources))
                     throw new IllegalArgumentException("Caminhos de origem ausentes para " + correction.id);
                 Wall wall = new Wall(stableId(mode + ":owner-wall:" + correction.id), axis, thickness, wallSources);
                 walls.add(wall);
+                if (wallOnly) continue;
                 List<String> openingSources = new ArrayList<>(wallSources);
                 for (String source : strings(data.path("opening_path_ids")))
                     if (availablePaths.contains(source) && !openingSources.contains(source)) openingSources.add(source);
@@ -358,7 +363,7 @@ public class ArchitecturalProcessingService {
     }
 
     /** Close surveyed boundary runs and short T junctions without crossing a classified opening. */
-    private Set<String> closeJunctions(String projectId, LayoutMode mode, List<Wall> walls,
+    private Set<String> closeJunctions(String projectId, LayoutMode mode, LayoutTransform transform, List<Wall> walls,
                                        List<Opening> openings) {
         String siteColumn = mode == LayoutMode.ORIGINAL_LAYOUT ? "site_geom_original" : "site_geom";
         Geometry boundary = parse(jdbc.queryForObject(
@@ -413,6 +418,31 @@ public class ArchitecturalProcessingService {
             if (best != null && bestDistance > 0.005) {
                 ends[i][end] = best;
                 changed.add(walls.get(i).id());
+            }
+        }
+        for (Semantic correction : loadSemantics(projectId, mode, "OWNER_CORRECTION")) {
+            if (!"WALL_JUNCTION".equals(correction.elementType)) continue;
+            JsonNode junction = correction.data.path("junction_original_m");
+            List<String> sources = strings(correction.data.path("junction_wall_sources"));
+            if (!junction.isArray() || junction.size() != 2 || sources.size() < 2)
+                throw new IllegalArgumentException("Encontro inválido: " + correction.id);
+            Coordinate target = transform.fromOriginalMetric(junction.get(0).asDouble(),
+                    junction.get(1).asDouble(), mode);
+            for (String sourceId : sources) {
+                int match = -1;
+                for (int i = 0; i < walls.size(); i++)
+                    if (walls.get(i).sourcePathIds().contains(sourceId)) { match = i; break; }
+                if (match < 0) throw new IllegalArgumentException("Parede do encontro ausente: " + correction.id);
+                int end = ends[match][0].distance(target) < ends[match][1].distance(target) ? 0 : 1;
+                Coordinate tip = ends[match][end];
+                if (tip.distance(target) > 0.82)
+                    throw new IllegalArgumentException("Encontro distante da parede: " + correction.id);
+                LineString extension = geometryFactory.createLineString(new Coordinate[] {tip, target});
+                if (openings.stream().anyMatch(opening -> !"UNKNOWN_OPENING".equals(opening.type) &&
+                        opening.span != null && extension.distance(opening.span) < 0.10))
+                    throw new IllegalArgumentException("Encontro atravessa abertura: " + correction.id);
+                ends[match][end] = target;
+                changed.add(walls.get(match).id());
             }
         }
         for (int i = 0; i < walls.size(); i++) {

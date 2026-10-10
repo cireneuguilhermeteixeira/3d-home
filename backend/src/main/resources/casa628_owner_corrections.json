@@ -82,6 +82,60 @@
       "message": "aqui eh uma janela,e na parte um pouco superior eh uma porta",
       "position_original_m": [8.321, 31.442],
       "pending_detail": "A porta superior precisa de um ponto separado para definir seu vao."
+    },
+    {
+      "id": "R2-P001", "element_type": "WALL_JUNCTION",
+      "message": "feche as frestas entre essa parede",
+      "position_original_m": [0.943, 19.012],
+      "junction_original_m": [0.977, 18.983],
+      "junction_wall_sources": ["1c2b3674-4332-5602-ab18-fc960607b520", "1277946c-0376-53bc-87cc-e0b3c79bdcc3"]
+    },
+    {
+      "id": "R2-P002", "element_type": "WALL_JUNCTION",
+      "message": "feche as frestas entre as parede aqui tbm.",
+      "position_original_m": [3.912, 12.192],
+      "junction_original_m": [4.165, 12.070],
+      "junction_wall_sources": ["6bc59619-3d51-5b1a-a2a4-efadc612fdc1", "a02a54f5-398b-58bf-95eb-c4e842b4c488"]
+    },
+    {
+      "id": "R2-P003", "element_type": "DOOR",
+      "message": "faltando porta aqui",
+      "position_original_m": [4.072, 9.326]
+    },
+    {
+      "id": "R2-P004", "element_type": "DOOR",
+      "target_annotation_id": "ann-013", "relocate": true,
+      "message": "ainda falta porta aqui, vc colocou no lado errado; onde tinha a porta complete com a parede",
+      "position_original_m": [4.079, 5.003]
+    },
+    {
+      "id": "R2-P005", "element_type": "WALL_SEGMENT",
+      "message": "falta uma parede aqui",
+      "position_original_m": [0.353, 5.444],
+      "wall_axis_original_m": [[-0.109, 5.484], [1.073, 5.484]],
+      "wall_thickness_m": 0.403,
+      "source_path_ids": ["1a5527eb-a79d-5720-850a-0f9091e6ab95", "34f13b04-7096-55cb-afdc-e38834304583"]
+    },
+    {
+      "id": "R2-P006", "element_type": "WALL_JUNCTION",
+      "message": "feche as frestas entre as paredes, uma parede deve encostar na outra.",
+      "position_original_m": [1.033, 15.843],
+      "junction_original_m": [1.042, 15.784],
+      "junction_wall_sources": ["75ee3ce1-ab63-56c0-9cfd-0106f8fcbfeb", "1c2b3674-4332-5602-ab18-fc960607b520", "00d90ef9-a3e5-5980-a9eb-2dd0256ed7a8"]
+    },
+    {
+      "id": "R2-P007", "element_type": "WALL_JUNCTION",
+      "message": "feche as frestas entre as paredes, uma parede deve encostar na outra.",
+      "position_original_m": [1.096, 12.021],
+      "junction_original_m": [1.023, 12.070],
+      "junction_wall_sources": ["26c7051d-e1fd-5c28-8420-f827f9b3879f", "a02a54f5-398b-58bf-95eb-c4e842b4c488"]
+    },
+    {
+      "id": "R2-P008", "element_type": "WALL_JUNCTION",
+      "message": "feche as frestas entre as paredes, uma parede deve encostar na outra.",
+      "position_original_m": [0.999, 8.997],
+      "junction_original_m": [1.026, 8.890],
+      "junction_wall_sources": ["26c7051d-e1fd-5c28-8420-f827f9b3879f", "238d0edc-4df9-54cc-b6d6-34b32a91d748", "0ea19d86-04de-542f-b875-5fe5e97ca9f8"]
     }
   ]
 }
