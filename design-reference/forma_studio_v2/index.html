@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f4f0" />
+  <meta name="description" content="Forma Studio — do desenho à vida real. Explore sua casa, personalize seus espaços." />
+  <title>Forma Studio — Sua casa, sob uma nova perspectiva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="app.js"></script>
+</head>
+<body data-view="home">
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-defs" aria-hidden="true">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H4m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12 5 5L20 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Z"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 10 9-5m-9 5L3 7m9 5v10"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M21 3C9 3 3 9 3 16a5 5 0 0 0 5 5c7 0 13-6 13-18ZM4 20c3-5 7-8 13-11"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-chair" viewBox="0 0 24 24"><path d="M5 12V5a3 3 0 0 1 6 0v7m2 0V5a3 3 0 0 1 6 0v7M4 12h16v6H4v-6Zm2 6v3m12-3v3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="m8 7 1.3-3h5.4L16 7"/><circle cx="12" cy="13.5" r="3"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.4 2 12s4.5 10 10 10c1.6 0 2.5-1.3 1.8-2.6-.8-1.5.1-2.4 1.7-2.4H18A4 4 0 0 0 22 12c0-5.6-4.4-10-10-10Z"/><circle cx="7" cy="11" r="1"/><circle cx="10" cy="6.5" r="1"/><circle cx="16" cy="7" r="1"/><circle cx="18" cy="12" r="1"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3m-5 5 5-5 5 5M4 14v6h16v-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 6-10 6L2 8l10-6Zm-10 10 10 6 10-6M2 16l10 6 10-6"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18m-15 0 1 15h10l1-15M9 6V3h6v3m-5 4v7m4-7v7"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20m-7-7-3-3-3 3m6 14-3 3-3-3M5 9l-3 3 3 3m14-6 3 3-3 3"/></symbol>
+  </svg>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- LANDING: arte arquitetônica procedural, sem imagem de referência -->
+  <section id="home" class="page home-page" aria-label="Apresentação do Forma Studio">
+    <header class="site-header">
+      <a class="brand" href="#" data-goto="home" aria-label="Forma Studio — início"><span class="brand-symbol"><span></span></span><strong>forma<span class="brand-dot">.</span></strong><small>STUDIO</small></a>
+      <span class="site-header-center">O ESPAÇO COMO VOCÊ IMAGINA</span>
+      <button class="header-cta" data-goto="step-styles">Criar projeto <svg class="icon"><use href="#i-arrow"/></svg></button>
+    </header>
+    <div class="hero-track" id="heroTrack">
+      <div class="hero-stage">
+        <div class="hero-ambient"></div>
+        <div class="hero-scene" aria-hidden="true">
+          <div class="scene-light light-one"></div><div class="scene-light light-two"></div>
+          <div class="structure scene-back"></div>
+          <div class="structure scene-floor"></div>
+          <div class="structure scene-left"></div>
+          <div class="structure scene-right"></div>
+          <div class="arch-window"><div class="window-glow"></div><div class="window-cross vertical"></div><div class="window-cross horizontal"></div></div>
+          <div class="arch-block block-one"></div><div class="arch-block block-two"></div><div class="arch-block block-three"></div>
+          <div class="scene-gridlines"></div>
+          <div class="scene-crosshair c1">+</div><div class="scene-crosshair c2">+</div>
+          <div class="floating-spec spec-a"><span class="spec-dot"></span> REIMAGINE O POSSÍVEL</div>
+          <div class="floating-spec spec-b">FORMA / ESPAÇO 001</div>
+          <div class="floating-spec spec-c">PERSPECTIVA <span>↗</span></div>
+        </div>
+        <div class="hero-content">
+          <span class="overline"><span class="overline-mark">✳</span> SEU FUTURO LAR COMEÇA AQUI</span>
+          <h1>Um novo jeito de<br><em>habitar ideias.</em></h1>
+          <p>Transforme uma planta em possibilidades. Explore seus ambientes e desenhe a casa que é a sua cara.</p>
+          <div class="hero-actions">
+            <button class="button button-dark hero-button" data-goto="step-styles">Começar meu projeto <svg class="icon"><use href="#i-arrow"/></svg></button>
+            <button class="button button-outline hero-button" id="exploreDemo">Explorar demo <svg class="icon"><use href="#i-eye"/></svg></button>
+          </div>
+          <div class="hero-footnote"><span class="accent-line"></span> DA PRIMEIRA LINHA À PRIMEIRA IMPRESSÃO</div>
+        </div>
+        <div class="scroll-cue"><span>SCROLL PARA EXPLORAR</span><span class="scroll-cue-line"></span><span>↓</span></div>
+        <div class="scene-bottom-note">ARQUITETURA EM MOVIMENTO <span>✦</span> FEITO PARA IMAGINAR</div>
+      </div>
+    </div>
+    <div class="home-endnote"><span>01 / IMAGINE</span><span>02 / VISUALIZE</span><span>03 / TRANSFORME</span></div>
+  </section>
+
+  <!-- ONBOARDING FLOW HEADER: compartilhado por todas as perguntas -->
+  <section id="flow" class="page flow-page" aria-label="Configuração de projeto">
+    <header class="flow-header">
+      <div class="flow-left"><button id="flowBack" class="icon-button" title="Voltar" aria-label="Voltar"><svg class="icon"><use href="#i-back"/></svg></button><a class="brand brand-flow" href="#" data-goto="home"><span class="brand-symbol"><span></span></span><strong>forma<span class="brand-dot">.</span></strong><small>STUDIO</small></a></div>
+      <nav class="flow-steps" aria-label="Etapas do projeto"><button data-step="step-styles" data-step-index="0"><span>01</span><b>Estilo</b></button><i></i><button data-step="step-feel" data-step-index="1"><span>02</span><b>Preferências</b></button><i></i><button data-step="step-source" data-step-index="2"><span>03</span><b>Sua casa</b></button><i></i><button data-step="step-upload" data-step-index="3"><span>04</span><b>Importação</b></button></nav>
+      <span class="flow-progress-text" id="flowProgressText">ETAPA 01 DE 04</span>
+    </header>
+    <div class="flow-progress-line"><span id="flowProgressBar"></span></div>
+    <div class="flow-body">
+      <article id="step-styles" class="flow-panel" data-step-title="Estilo">
+        <div class="flow-center flow-styles">
+          <div class="overline dark-overline">01 / SEU ESTILO</div>
+          <h2>Qual estética faz você<br><em>se sentir em casa?</em></h2>
+          <p class="section-description">Escolha um ou mais estilos. Você poderá combinar ideias depois.</p>
+          <div class="styles-grid">
+            <label class="style-option"><input type="checkbox" name="style" value="Minimalista" checked/><span class="style-art minimal"><i></i><b></b><em></em></span><span class="style-name">Minimalista<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Japandi" checked/><span class="style-art japandi"><i></i><b></b><em></em></span><span class="style-name">Japandi<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Contemporâneo"/><span class="style-art contemporary"><i></i><b></b><em></em></span><span class="style-name">Contemporâneo<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Industrial"/><span class="style-art industrial"><i></i><b></b><em></em></span><span class="style-name">Industrial<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Escandinavo"/><span class="style-art scandi"><i></i><b></b><em></em></span><span class="style-name">Escandinavo<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Rústico"/><span class="style-art rustic"><i></i><b></b><em></em></span><span class="style-name">Rústico<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Boho"/><span class="style-art boho"><i></i><b></b><em></em></span><span class="style-name">Boho<span class="style-tick">✓</span></span></label>
+            <label class="style-option"><input type="checkbox" name="style" value="Clássico"/><span class="style-art classic"><i></i><b></b><em></em></span><span class="style-name">Clássico<span class="style-tick">✓</span></span></label>
+          </div>
+          <footer class="flow-footer"><span>O seu gosto é o ponto de partida.</span><button class="button button-dark" data-goto="step-feel">Continuar <svg class="icon"><use href="#i-arrow"/></svg></button></footer>
+        </div>
+      </article>
+      <article id="step-feel" class="flow-panel" data-step-title="Preferências">
+        <div class="flow-center flow-preferences">
+          <div class="overline dark-overline">02 / SEU JEITO DE VIVER</div>
+          <h2>O que faz um ambiente<br><em>ser a sua cara?</em></h2>
+          <p class="section-description">Pequenos detalhes mudam tudo. Escolha o que combina com você.</p>
+          <div class="preference-question"><div class="question-label"><span class="question-icon"><svg class="icon"><use href="#i-leaf"/></svg></span><div><strong>Gosta de ter plantas por perto?</strong><small>Uma dose de natureza em cada canto.</small></div></div><div class="option-row" role="group" aria-label="Preferência por plantas"><label><input type="radio" name="plants" value="Muitas" checked/><span>Adoro plantas</span></label><label><input type="radio" name="plants" value="Algumas"/><span>Algumas</span></label><label><input type="radio" name="plants" value="Nenhuma"/><span>Sem plantas</span></label></div></div>
+          <div class="preference-question"><div class="question-label"><span class="question-icon"><svg class="icon"><use href="#i-sun"/></svg></span><div><strong>Que atmosfera você prefere?</strong><small>Selecione quantas opções quiser.</small></div></div><div class="option-row multi-row"><label><input type="checkbox" name="mood" value="Luz natural" checked/><span>☀ &nbsp; Luz natural</span></label><label><input type="checkbox" name="mood" value="Aconchegante" checked/><span>♡ &nbsp; Aconchego</span></label><label><input type="checkbox" name="mood" value="Materiais naturais"/><span>▥ &nbsp; Madeira e pedra</span></label><label><input type="checkbox" name="mood" value="Organização"/><span>◈ &nbsp; Organização</span></label><label><input type="checkbox" name="mood" value="Pet friendly"/><span>✳ &nbsp; Pet friendly</span></label></div></div>
+          <label class="brief-label" for="briefExtra">Algum detalhe importante? <span>Opcional</span></label>
+          <textarea id="briefExtra" class="brief-textarea" rows="3" placeholder="Ex.: prefiro tons neutros, tenho dois pets, quero um espaço de leitura..."></textarea>
+          <footer class="flow-footer"><span>Você poderá mudar tudo mais tarde.</span><button class="button button-dark" data-goto="step-source">Continuar <svg class="icon"><use href="#i-arrow"/></svg></button></footer>
+        </div>
+      </article>
+      <article id="step-source" class="flow-panel" data-step-title="Sua casa">
+        <div class="flow-center flow-source">
+          <div class="overline dark-overline">03 / IMPORTAÇÃO</div>
+          <h2>Como vamos conhecer<br><em>a sua casa?</em></h2>
+          <p class="section-description">Escolha o ponto de partida do seu projeto.</p>
+          <div class="source-grid">
+            <button class="source-choice" id="sourceDWG"><span class="source-icon"><svg class="icon"><use href="#i-layers"/></svg></span><span class="source-badge">DISPONÍVEL NO PROTÓTIPO</span><strong>Arquivo AutoCAD</strong><small>Importe seu desenho técnico e transforme linhas em ambientes.</small><span class="source-footer">DWG <svg class="icon"><use href="#i-arrow"/></svg></span></button>
+            <button class="source-choice" id="sourceRoomPlan"><span class="source-icon"><svg class="icon"><use href="#i-phone"/></svg></span><span class="source-badge muted">EM BREVE</span><strong>Escanear com iPhone</strong><small>Reconheça dimensões e cômodos com Apple RoomPlan.</small><span class="source-footer">ROOMPLAN <svg class="icon"><use href="#i-arrow"/></svg></span></button>
+          </div>
+          <span class="source-footnote">Seus arquivos serão utilizados apenas para construir seu projeto.</span>
+        </div>
+      </article>
+      <article id="step-upload" class="flow-panel" data-step-title="Importação">
+        <div class="flow-center flow-upload">
+          <div class="overline dark-overline">04 / SUA PLANTA</div>
+          <h2 id="uploadTitle">Tudo começa<br><em>com um desenho.</em></h2>
+          <p class="section-description" id="uploadIntro">Selecione seu arquivo DWG para começar.</p>
+          <div class="upload-dropzone" id="dwgZone"><svg class="icon"><use href="#i-upload"/></svg><strong>Arraste seu DWG ou escolha um arquivo</strong><span id="uploadFileName">Arquivo .DWG • até 50 MB (simulação)</span><input id="dwgInput" type="file" accept=".dwg" aria-label="Selecionar arquivo DWG"/></div>
+          <div class="roomplan-preview" id="roomplanPreview" hidden><svg class="icon"><use href="#i-phone"/></svg><strong>RoomPlan está chegando.</strong><p>Em breve, você poderá escanear a casa com seu iPhone. Por enquanto, experimente o fluxo com a planta de demonstração.</p></div>
+          <div class="upload-helper"><svg class="icon"><use href="#i-spark"/></svg><span>Este protótipo simula o processamento, sem enviar arquivos.</span></div>
+          <footer class="flow-footer"><span>Importação demonstrativa</span><button class="button button-dark" id="beginLoading">Criar meu espaço <svg class="icon"><use href="#i-arrow"/></svg></button></footer>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- LOADING SIMULADO -->
+  <section id="loading" class="page loading-page" aria-label="Preparando planta">
+    <div class="load-mark"><div class="load-ring ring-outer"></div><div class="load-ring ring-inner"></div><div class="load-cube"><span></span><span></span><span></span></div></div>
+    <span class="overline">CRIANDO SEU ESPAÇO</span>
+    <h2>Da planta para <em>a vida.</em></h2>
+    <div class="load-bar"><span></span></div>
+    <span class="load-caption">Preparando ambientes...</span>
+    <button class="loading-skip" id="skipLoading">Ver minha planta <svg class="icon"><use href="#i-arrow"/></svg></button>
+  </section>
+
+  <!-- WORKSPACE: CAD / PRIMEIRA PESSOA -->
+  <section id="workspace" class="page workspace" data-mode="cad" aria-label="Editor de projeto">
+    <header class="work-header">
+      <div class="work-brand"><a class="brand work-brand-mark" href="#" data-goto="home"><span class="brand-symbol"><span></span></span><strong>forma<span class="brand-dot">.</span></strong></a><span class="work-divider"></span><div><strong>Minha casa</strong><small>PROJETO / DEMONSTRAÇÃO</small></div></div>
+      <div class="mode-switch" role="group" aria-label="Modo de visualização"><button id="viewCAD" class="active"><svg class="icon"><use href="#i-grid"/></svg> Vista CAD</button><button id="viewFirst" disabled title="Nomeie os cômodos para continuar"><svg class="icon"><use href="#i-eye"/></svg> Vista em primeira pessoa</button></div>
+      <div class="work-actions"><span class="saved-state"><span></span> RASCUNHO</span><button id="exportTop" class="button button-dark export-btn"><svg class="icon"><use href="#i-export"/></svg> Exportar projeto</button></div>
+    </header>
+
+    <div class="work-body">
+      <aside class="work-sidebar" id="sidebarCAD">
+        <div class="side-title"><span class="overline dark-overline">01 / SUA PLANTA</span><h3>Identifique os espaços.</h3><p>Conte para a gente o que é cada ambiente antes de explorar a casa.</p></div>
+        <div class="room-head"><span>AMBIENTES <strong id="namedCount">0/8</strong></span><button id="autoName" class="small-text-button">Aplicar sugestões</button></div>
+        <div class="room-editor" id="roomEditor"></div>
+        <div class="side-tip"><svg class="icon"><use href="#i-spark"/></svg><span>Quer começar do zero? Você pode personalizar a casa vazia.</span></div>
+        <div class="side-bottom"><button id="manualEmpty" class="button button-ghost">Personalizar manualmente</button><button id="finishRooms" class="button button-dark" disabled>Continuar para o interior <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+      </aside>
+      <aside class="work-sidebar interior-sidebar" id="sidebarInterior" hidden>
+        <div class="side-title"><span class="overline dark-overline">02 / PERSONALIZAÇÃO</span><h3>Seu espaço, suas regras.</h3><p>Escolha um elemento ou experimente uma nova ideia.</p></div>
+        <div class="tool-section"><span class="tool-heading">EXPERIÊNCIA</span><button class="tool-row" id="photoOpen"><span class="tool-row-icon"><svg class="icon"><use href="#i-camera"/></svg></span><span><strong>Gerar imagem fotorrealista</strong><small>Prévia da cena atual</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button><button class="tool-row" id="timeTool"><span class="tool-row-icon"><svg class="icon"><use href="#i-sun"/></svg></span><span><strong>Hora do dia</strong><small id="timeLabel">16:00 · Sol da tarde</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button><div class="time-popover" id="timePopover" hidden><label for="timeRange">Iluminação da cena</label><input id="timeRange" type="range" min="6" max="20" value="16"/><div><span>6h</span><span>12h</span><span>20h</span></div></div></div>
+        <div class="tool-section"><span class="tool-heading">PERSONALIZAR</span><button class="tool-row" id="selectWalls"><span class="tool-row-icon"><svg class="icon"><use href="#i-palette"/></svg></span><span><strong>Paredes e pinturas</strong><small>Cores e acabamentos</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button><button class="tool-row" id="selectFloor"><span class="tool-row-icon"><svg class="icon"><use href="#i-grid"/></svg></span><span><strong>Piso e revestimento</strong><small>Texturas e materiais</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button><button class="tool-row" id="selectObjects"><span class="tool-row-icon"><svg class="icon"><use href="#i-pin"/></svg></span><span><strong>Pontos de interesse</strong><small>Editar, mover ou excluir</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button><button class="tool-row" id="assetsToggle"><span class="tool-row-icon"><svg class="icon"><use href="#i-chair"/></svg></span><span><strong>Adicionar móveis</strong><small>Explorar biblioteca de assets</small></span><svg class="icon chevron"><use href="#i-chevron"/></svg></button></div>
+        <div class="asset-library" id="assetLibrary" hidden><div class="asset-head"><strong>Biblioteca de assets</strong><span>DEMO</span></div><div class="asset-filters"><button class="selected" data-asset-filter="Todos">Todos</button><button data-asset-filter="Sala">Sala</button><button data-asset-filter="Quarto">Quarto</button><button data-asset-filter="Cozinha">Cozinha</button></div><div class="asset-grid" id="assetGrid"></div></div>
+        <div class="tool-section selected-section"><span class="tool-heading">SELEÇÃO ATUAL</span><div class="selected-object"><span class="selected-indicator"></span><div><strong id="selectedElement">Parede da sala</strong><small id="selectedElementType">Superfície selecionada</small></div></div><div class="selected-actions"><button id="editSelected"><svg class="icon"><use href="#i-sliders"/></svg> Editar</button><button id="moveSelected"><svg class="icon"><use href="#i-move"/></svg> Mover</button><button id="deleteSelected"><svg class="icon"><use href="#i-trash"/></svg> Excluir</button></div><div class="material-panel" id="materialPanel"><small>ACABAMENTOS</small><div class="swatch-list"><button class="swatch sw-a selected" data-material="Off-white" aria-label="Off-white"></button><button class="swatch sw-b" data-material="Verde-sálvia" aria-label="Verde-sálvia"></button><button class="swatch sw-c" data-material="Concreto" aria-label="Concreto"></button><button class="swatch sw-d" data-material="Madeira" aria-label="Madeira"></button><button class="swatch sw-e" data-material="Terracota" aria-label="Terracota"></button></div><span id="materialLabel">Off-white</span></div></div>
+        <div class="side-bottom"><button id="exportSide" class="button button-dark full-width"><svg class="icon"><use href="#i-export"/></svg> Exportar casa decorada</button></div>
+      </aside>
+
+      <div class="work-canvas" id="workCanvas">
+        <div class="canvas-top-hint" id="cadInfo"><span class="canvas-pill"><span class="live-dot"></span> VISTA SUPERIOR · CAD</span><span class="canvas-caption">PLANTA CONCEITUAL · 12 × 33 M</span></div>
+        <div class="canvas-top-hint" id="interiorInfo" hidden><span class="canvas-pill light"><span class="live-dot"></span> PRIMEIRA PESSOA · DEMO</span><span class="canvas-caption">QUARTO / EXEMPLO VISUAL</span></div>
+        <div id="cadCanvas" class="cad-canvas">
+          <div class="cad-paper">
+            <svg id="cadPlan" class="cad-svg" viewBox="0 0 420 665" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planta baixa demonstrativa com oito ambientes identificáveis">
+              <defs><pattern id="fineGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#c4d1c6" stroke-width=".35"/></pattern></defs>
+              <rect width="420" height="665" fill="url(#fineGrid)"/>
+              <path d="M98 23 327 23 327 634 98 634Z" fill="#fffefb" stroke="#506158" stroke-width="3.5"/>
+              <rect x="101" y="25" width="223" height="602" fill="#fcfcf9"/>
+              <g fill-opacity=".78" stroke="none">
+                <rect x="103" y="43" width="99" height="94" fill="#dfe9de"/><rect x="211" y="43" width="111" height="94" fill="#e8e5db"/>
+                <rect x="103" y="145" width="99" height="102" fill="#e2e9ef"/><rect x="211" y="145" width="111" height="102" fill="#e8e1ec"/>
+                <rect x="103" y="255" width="121" height="90" fill="#e9e6dc"/><rect x="233" y="255" width="89" height="90" fill="#e0e9e4"/>
+                <rect x="103" y="353" width="219" height="66" fill="#e4eadf"/><rect x="103" y="426" width="219" height="200" fill="#f0f2ed"/>
+              </g>
+              <g stroke="#54645d" stroke-width="5.5" fill="none" stroke-linecap="square"><path d="M100 40H324 M100 40V423 M324 40V632 M100 423V632 M100 632H324"/><path d="M207 40V348 M100 141H324 M100 251H324 M229 251V348 M100 349H324 M100 423H324"/></g>
+              <g stroke="#fff" stroke-width="10" fill="none"><path d="M154 141h30 M239 141h27 M154 251h28 M253 251h29 M207 89v26 M207 181v27 M229 279v26 M170 349h35 M260 349h30 M194 423h35"/></g>
+              <g stroke="#9daaa1" stroke-width="1.4" fill="none"><path d="M154 141v30a30 30 0 0 0 30-30 M239 141v27a27 27 0 0 0 27-27 M154 251v28a28 28 0 0 0 28-28 M253 251v29a29 29 0 0 0 29-29 M207 89h26a26 26 0 0 1-26 26 M207 181h27a27 27 0 0 1-27 27 M170 349v35a35 35 0 0 0 35-35 M260 349v30a30 30 0 0 0 30-30 M194 423v35a35 35 0 0 0 35-35"/></g>
+              <g stroke="#6fa5ad" stroke-width="4.5"><path d="M100 65v44 M324 61v49 M100 178v44 M324 179v44 M100 285v43 M324 280v44"/></g>
+              <g fill="#cbdcc7" opacity=".65"><circle cx="166" cy="535" r="12"/><circle cx="274" cy="555" r="12"/></g><g stroke="#a6bba5" fill="none" stroke-dasharray="3 3"><circle cx="166" cy="535" r="21"/><circle cx="274" cy="555" r="21"/></g>
+              <g class="room-map-labels" font-family="DM Sans, sans-serif" text-anchor="middle" fill="#62736a" font-size="9.5" font-weight="700"><text x="151" y="92" data-room-label="1">AMBIENTE 01</text><text x="266" y="92" data-room-label="2">AMBIENTE 02</text><text x="151" y="193" data-room-label="3">AMBIENTE 03</text><text x="268" y="193" data-room-label="4">AMBIENTE 04</text><text x="161" y="301" data-room-label="5">AMBIENTE 05</text><text x="279" y="301" data-room-label="6">AMBIENTE 06</text><text x="213" y="390" data-room-label="7">AMBIENTE 07</text><text x="213" y="513" data-room-label="8">AMBIENTE 08</text></g>
+              <g stroke="#879c8e" stroke-width="1" fill="none"><path d="M76 23V634M76 23h12m-12 611h12M98 646h229m-229-7v14m229-14v14"/></g><g fill="#83958b" font-size="10" font-family="DM Sans, sans-serif"><text x="67" y="330" transform="rotate(-90 67 330)" text-anchor="middle">33 METROS</text><text x="214" y="660" text-anchor="middle">12 METROS</text></g>
+            </svg>
+          </div>
+          <div class="cad-overlay-hint"><svg class="icon"><use href="#i-pin"/></svg> Nomeie os ambientes à esquerda</div>
+          <div class="canvas-bottom-note">PLANTA ILUSTRATIVA · NÃO É O DWG IMPORTADO</div>
+        </div>
+
+        <div id="interiorCanvas" class="interior-canvas" hidden>
+          <div class="interior-image" aria-label="Imagem ilustrativa de ambiente contemporâneo"></div>
+          <div class="empty-illustration" id="emptyIllustration" hidden><div class="empty-perspective"><span class="empty-wall back"></span><span class="empty-wall left"></span><span class="empty-wall floor"></span></div><div class="empty-label">Sua tela em branco.<small>Comece escolhendo um elemento ou adicionando um asset.</small></div></div>
+          <div class="day-overlay" id="dayOverlay"></div>
+          <button class="interest-point interest-wall" data-point="Parede da sala" title="Editar parede"><span>+</span><small>Parede</small></button>
+          <button class="interest-point interest-floor" data-point="Piso da sala" title="Editar piso"><span>+</span><small>Piso</small></button>
+          <button class="interest-point interest-object" data-point="Sofá" title="Editar móvel"><span>+</span><small>Objeto</small></button>
+          <div class="scene-bottom-label">⌖ &nbsp; AMBIENTE CONCEITUAL <span>·</span> THREE.JS NA VERSÃO FUNCIONAL</div>
+        </div>
+        <div class="canvas-actions"><button id="recenterView" title="Centralizar cena"><svg class="icon"><use href="#i-pin"/></svg></button><button id="canvasGrid" title="Alternar grade"><svg class="icon"><use href="#i-grid"/></svg></button></div>
+      </div>
+      <aside class="context-side" id="contextSide" hidden><div class="context-top"><span class="overline dark-overline">ESTÚDIO CRIATIVO</span><button id="contextClose" class="plain-close" title="Fechar"><svg class="icon"><use href="#i-close"/></svg></button></div><h3>Imagine. <em>Transforme.</em></h3><p>Descreva o que gostaria de mudar neste ambiente.</p><div class="prompt-suggestions"><button data-example="Pinte as paredes em verde-sálvia">Verde-sálvia nas paredes</button><button data-example="Troque o piso por porcelanato claro">Porcelanato claro</button><button data-example="Adicione um sofá de linho bege">Sofá de linho bege</button></div><label for="aiPrompt">INSTRUÇÃO EM LINGUAGEM NATURAL</label><textarea id="aiPrompt" rows="4" placeholder="Ex.: troque o piso por cimento queimado e coloque uma planta ao lado da janela..."></textarea><button id="applyAI" class="button button-dark full-width">Experimentar alteração <svg class="icon"><use href="#i-spark"/></svg></button><span class="context-foot">Demonstração de interface · sem IA conectada.</span></aside>
+    </div>
+  </section>
+
+  <!-- MODAIS -->
+  <div id="photoModal" class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="photoModalTitle" hidden><div class="modal-shade" data-close="photo"></div><div class="photo-modal modal-card"><div class="modal-head"><div><span class="overline dark-overline">PRÉVIA FOTORREALISTA</span><h3 id="photoModalTitle">Sua ideia, em outra luz.</h3></div><button data-close="photo" class="icon-button" title="Fechar"><svg class="icon"><use href="#i-close"/></svg></button></div><img src="assets/photo-reference.jpg" alt="Exemplo ilustrativo de renderização de um interior iluminado"/><p>Imagem ilustrativa do resultado esperado. A renderização fotorrealista será integrada futuramente.</p><button data-close="photo" class="button button-dark">Voltar ao projeto</button></div></div>
+  <div id="budgetModal" class="modal-shell" role="dialog" aria-modal="true" aria-labelledby="budgetModalTitle" hidden><div class="modal-shade" data-close="budget"></div><div class="budget-modal modal-card"><div class="modal-head"><div><span class="overline dark-overline">EXPORTAR PROJETO</span><h3 id="budgetModalTitle">Tudo o que você imaginou.</h3><p>Materiais, mobiliário e custo estimado em um só lugar.</p></div><button data-close="budget" class="icon-button" title="Fechar"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="budget-total"><span>ESTIMATIVA DE DEMONSTRAÇÃO</span><strong id="budgetTotal">R$ 0,00</strong><small>Valores ilustrativos, sem cotação de fornecedores.</small></div><div class="budget-table-wrap"><table class="budget-table"><thead><tr><th>Item</th><th>Quantidade</th><th>Custo estimado</th><th>Onde comprar</th></tr></thead><tbody id="budgetTableBody"></tbody></table></div><div class="budget-foot"><span>O CSV terá os itens desta prévia. Preços e lojas reais serão integrados posteriormente.</span><button id="downloadBudget" class="button button-dark"><svg class="icon"><use href="#i-export"/></svg> Exportar CSV</button></div></div></div>
+</body>
+</html>

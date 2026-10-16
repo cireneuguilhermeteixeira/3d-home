@@ -1,0 +1,2 @@
+import { db,session } from './db'
+export async function reservePaid(kind:string,limit:number){const owner=await session();const bucket=new Date();bucket.setUTCMinutes(0,0,0);const rows=await db()`INSERT INTO paid_usage(session_id,kind,bucket,count) VALUES(${owner},${kind},${bucket},1) ON CONFLICT(session_id,kind,bucket) DO UPDATE SET count=paid_usage.count+1 WHERE paid_usage.count<${limit} RETURNING count`;if(!rows.length)throw new Error('Limite horário atingido para esta operação')}

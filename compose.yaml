@@ -4,10 +4,10 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: casa628
-      POSTGRES_USER: casa628
-      POSTGRES_PASSWORD: casa628
+      POSTGRES_DB: forma
+      POSTGRES_USER: forma
+      POSTGRES_PASSWORD: forma
     volumes:
-      - house_postgres:/var/lib/postgresql/data
+      - forma_postgres:/var/lib/postgresql/data
 volumes:
-  house_postgres:
+  forma_postgres:

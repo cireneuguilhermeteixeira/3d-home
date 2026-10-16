@@ -1,0 +1,13 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE TABLE IF NOT EXISTS sessions(id uuid PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS projects(id uuid PRIMARY KEY, owner_session_id uuid NOT NULL REFERENCES sessions(id), name text NOT NULL, revision integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS project_drafts(project_id uuid PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, document jsonb NOT NULL, base_revision integer NOT NULL, draft_version integer NOT NULL DEFAULT 0, updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS project_revisions(project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, revision integer NOT NULL, document jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(project_id,revision));
+CREATE TABLE IF NOT EXISTS project_files(id uuid PRIMARY KEY, project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, pathname text NOT NULL, url text NOT NULL, format text NOT NULL CHECK(format IN ('DWG','DXF')), size_bytes bigint NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS cad_entities(project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, entity_id text NOT NULL, raw jsonb NOT NULL, geom geometry(Geometry,0), PRIMARY KEY(project_id,entity_id));
+CREATE INDEX IF NOT EXISTS cad_entities_geom_idx ON cad_entities USING gist(geom);
+CREATE TABLE IF NOT EXISTS spatial_elements(project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, element_id text NOT NULL, kind text NOT NULL, geom geometry(Geometry,0) NOT NULL, PRIMARY KEY(project_id,element_id));
+CREATE INDEX IF NOT EXISTS spatial_elements_geom_idx ON spatial_elements USING gist(geom);
+CREATE TABLE IF NOT EXISTS render_jobs(id uuid PRIMARY KEY, project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, revision integer NOT NULL, mode text NOT NULL, status text NOT NULL, image_url text, camera jsonb NOT NULL, error text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS conversion_jobs(id uuid PRIMARY KEY, project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE, file_id uuid NOT NULL REFERENCES project_files(id), provider_job_id text NOT NULL, status text NOT NULL, error text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS paid_usage(session_id uuid NOT NULL REFERENCES sessions(id),kind text NOT NULL,bucket timestamptz NOT NULL,count integer NOT NULL,PRIMARY KEY(session_id,kind,bucket));
