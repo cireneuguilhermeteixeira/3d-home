@@ -37,7 +37,7 @@ export async function writeDraft(id:string, document:ProjectDocument, expectedVe
   })
 }
 type Transaction=postgres.TransactionSql
-async function syncSpatial(tx:Transaction,id:string,doc:ProjectDocument,syncRaw:boolean){
+export async function syncSpatial(tx:Transaction,id:string,doc:ProjectDocument,syncRaw:boolean){
   if(syncRaw){await tx`DELETE FROM cad_entities WHERE project_id=${id}`
   for(const entity of doc.sourceCad.rawEntities){
     const wkt=entity.points.length>1?`LINESTRING(${entity.points.map(p=>`${p.x} ${p.y}`).join(',')})`:entity.points.length===1?`POINT(${entity.points[0].x} ${entity.points[0].y})`:null

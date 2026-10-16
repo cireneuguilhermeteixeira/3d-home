@@ -9,7 +9,8 @@ Legenda: `[ ]` pendente, `[-]` em andamento, `[x]` concluído. Uma etapa só fic
 ## Fase 1 — reconstrução
 
 - [x] Migração para Next.js. Aceite: App Router executa sem Java/Vite. Verificação: `npx tsc --noEmit`; servidor Next.js e `POST /api/projects` responderam localmente. Arquivos: `src/app`, `package.json`, `next.config.ts`; `backend/` e `frontend/` removidos após arquivamento.
-- [x] Migração da interface Forma Studio v2. Aceite: onboarding/editor responsivos com identidade do protótipo. Verificação: capturas reais no Chrome em desktop e celular, além do editor autenticado nas vistas CAD e 3D. Arquivos: `src/app/globals.css`, `src/components/NewProject.tsx`, `src/components/ProjectEditor.tsx`.
+- [x] Migração da interface Forma Studio v2. Aceite revisado pelo usuário: usar o mesmo CSS, estrutura e ícones do protótipo nas telas reais. Verificação: CSS original copiado em `src/app/prototype.css` (apenas URL do asset ajustada), sprite SVG original em `public/forma-icons.svg`, marcação equivalente em landing, quatro etapas do onboarding, editor e modais. Capturas desktop e móvel no Chrome; cliques reais nas opções e em Continuar avançam. Arquivos: `page.tsx`, `NewProject.tsx`, `ProjectEditor.tsx`, `CadPlan.tsx`, `app-extras.css`. Adições funcionais ao editor permanecem fora do CSS original.
+- [x] Demo funcional sem upload. Aceite: criar projeto persistido com planta semelhante à demonstração, vários cômodos e navegação 3D. Verificação: oito ambientes, paredes, portas, janelas e dois GLB no JSON; projeções PostGIS sincronizadas na criação, projeto aberto pelo botão Explorar demo, vistas CAD e primeira pessoa abertas no Chrome, movimento WASD alterou a vista; testes unitários e HTTP. Arquivos: `src/lib/demo.ts`, `api/projects/route.ts`, `tests/demo.test.ts`, `tests/project-flow.test.ts`. É uma casa demonstrativa, não um DWG importado.
 - [ ] Deploy Vercel. Aceite: build e publicação verificados.
 
 ## Fase 2 — banco e projeto
@@ -26,10 +27,10 @@ Legenda: `[ ]` pendente, `[-]` em andamento, `[x]` concluído. Uma etapa só fic
 
 ## Fase 4 — visualização
 
-- [x] Visualização CAD. Aceite: top view e seleção dos ambientes no mesmo JSON. Verificação visual no Chrome com DXF de teste; o clique no piso usa raycasting e a lista lateral permite selecionar o cômodo. Arquivos: `ProjectViewer.tsx`, `legacy/HouseScene.tsx`.
+- [x] Visualização CAD. Aceite: top view e seleção dos ambientes no mesmo JSON. Verificação visual no Chrome com DXF de teste e demo; a vista CAD em SVG usa o documento canônico para salas, paredes e aberturas, com seleção por clique. A vista 3D em Three.js usa o mesmo documento. Arquivos: `CadPlan.tsx`, `ProjectViewer.tsx`, `legacy/HouseScene.tsx`.
 - [x] Identificação dos ambientes. Aceite: nome e tipo editáveis, sem inferência inventada. Verificação: polilinha fechada normalizada no teste CAD e nome/tipo persistidos no teste HTTP. Arquivos: `operations.ts`, `ProjectEditor.tsx`.
 - [-] Reconstrução 3D. Aceite: paredes consolidadas, pisos e aberturas proporcionais. Pareamento de faces portado e testado; extração completa de aberturas e validação visual pendentes.
-- [-] Navegação em primeira pessoa. Aceite: teclado/mouse, colisão e seleção. Controles portados; entrada na vista conferida no Chrome. Posição inicial evita móveis e colisão/direção têm teste unitário; ainda falta teste interativo de movimento em plantas variadas.
+- [-] Navegação em primeira pessoa. Aceite: teclado/mouse, colisão e seleção. Controles portados; entrada na demo e movimento WASD conferidos no Chrome, colisão/direção têm teste unitário; ainda falta teste interativo de movimento em plantas CAD variadas.
 
 ## Fase 5 — decoração
 
@@ -48,7 +49,7 @@ Legenda: `[ ]` pendente, `[-]` em andamento, `[x]` concluído. Uma etapa só fic
 ## Fase 8 — orçamento e entrega
 
 - [x] Orçamento de materiais e móveis. Aceite: quantitativos e CSV sem preços inventados. Verificação: `budget()` no teste unitário e download CSV no fluxo HTTP/PostGIS. Paredes sem altura conhecida não recebem área inventada; preços não cadastrados ficam vazios.
-- [-] Testes automatizados. Aceite: fluxos principais e contratos externos verificados. `npm test` com 8/8 passou contra o build de produção, inclusive HTTP/PostGIS, revisão, orçamento CSV, CAD, navegação inicial, contrato CloudConvert e histórico de edição; contratos pagos DWG/OpenAI/Blob ainda sem credenciais externas.
+- [-] Testes automatizados. Aceite: fluxos principais e contratos externos verificados. `yarn test` com 11/11 passou com servidor local e PostGIS, inclusive criação e edição da demo, projeções espaciais, revisão, orçamento CSV, CAD, contrato CloudConvert e histórico de edição. Navegador desktop/móvel validou onboarding e primeira pessoa. Contratos pagos DWG/OpenAI/Blob ainda sem credenciais externas.
 - [x] Documentação final. Aceite: README com configuração, execução, variáveis, deploy e limitações reais. Arquivo `README.md` atualizado; funcionalidades não verificadas continuam descritas como pendentes.
 
 ## Registro de execução
@@ -61,3 +62,5 @@ Legenda: `[ ]` pendente, `[-]` em andamento, `[x]` concluído. Uma etapa só fic
 - 2026-10-16: cor da parede conectada aos sólidos 3D e confirmada no Chrome com edição persistida; câmera inicial da primeira pessoa afastada de móveis. Plano antigo Java arquivado em `legacy/PLAN.md`. Validação final: `npm run build`, `npm test` (6/6 contra `next start` com PostGIS), `git diff --check`. Projeto/sessão temporários da verificação visual removidos do banco.
 - 2026-10-16: contrato da CloudConvert verificado com mock apenas da chamada externa: `import/url` assinado, conversão DWG→DXF, exportação e status (`tests/cloudconvert.test.ts`). O editor consulta o job automaticamente a cada cinco segundos e encerra a consulta em caso de erro. Verificação: `npm test` (6 unitários/contrato), `npx tsc --noEmit`, `git diff --check`. DWG real ainda depende de chave, Blob e arquivo de teste.
 - 2026-10-16: fluxo de operações retornadas pela IA agora usa o mesmo histórico local de edição, preserva a vista/seleção e permite desfazer/refazer (`editor-store.ts`, `ProjectEditor.tsx`, `editor-store.test.ts`). Verificação final: `npm run build`, `npm test` (8/8 contra `next start`/PostGIS na porta 3100), `git diff --check`. Não houve chamada OpenAI real por falta de credencial.
+- 2026-10-16: usuário pediu fidelidade literal ao `design-reference`, correção da seleção de estilos e uma casa demo navegável. Inspeção apontou que a UI atual usava CSS/estrutura próprios; a próxima implementação reutiliza o stylesheet e o sprite SVG originais. Nenhuma dessas três correções foi marcada como concluída antes do teste.
+- 2026-10-16: landing, onboarding, editor e modais migrados para as classes/CSS/ícones do protótipo. A falha do botão Continuar foi reproduzida no Chrome: Next dev bloqueava `/_next/hmr` ao acessar por `127.0.0.1`, impedindo a hidratação React. `allowedDevOrigins` foi configurado e o servidor reiniciado; clique real avança pelas quatro etapas. Demo 12 × 33 m persistida com oito ambientes, paredes, portas, janelas, GLB e projeções PostGIS; não declara importação CAD. Verificação: `yarn next build --webpack` (Turbopack falhou por restrição de porta no sandbox), `yarn tsc --noEmit`, `yarn test` (11/11 com PostGIS), Chrome desktop/móvel, entrada e movimento WASD na primeira pessoa. Faltam as credenciais de integrações externas e validação em plantas variadas.

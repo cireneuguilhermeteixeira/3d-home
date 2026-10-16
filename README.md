@@ -1,6 +1,6 @@
 # Forma Studio
 
-Aplicação Next.js para importar plantas CAD, revisar ambientes, explorar uma maquete Three.js e editar um projeto arquitetônico versionado. A interface segue a linguagem visual do protótipo em `design-reference/forma_studio_v2`.
+Aplicação Next.js para importar plantas CAD, revisar ambientes, explorar uma maquete Three.js e editar um projeto arquitetônico versionado. Landing, onboarding, editor e modais reutilizam o CSS, os ícones SVG e a estrutura visual de `design-reference/forma_studio_v2`.
 
 ## Estado atual
 
@@ -8,20 +8,26 @@ O fluxo local de criação, normalização **DXF**, edição, salvamento, restau
 
 O modelo arquitetônico preserva as entidades CAD originais em `sourceCad.rawEntities`, mantém paredes/ambientes/aberturas interpretados em campos próprios e móveis/materiais em dados de design. As geometrias usam metros quando a unidade do DXF é conhecida. Se `$INSUNITS` não for confiável, a interface pede uma medida de referência antes de construir a maquete.
 
+## Experimentar sem arquivo CAD
+
+Na página inicial, clique em **Explorar demo**. Isso cria no PostgreSQL um projeto de demonstração editável com oito ambientes em uma planta de 12 × 33 m, paredes, portas, janelas e dois móveis GLB. Selecione um ambiente na vista CAD, use **Maquete 3D** ou **Primeira pessoa**, clique na cena para ativar a navegação e mova-se com **WASD** (mouse para olhar). As alterações usam o mesmo rascunho e o botão **Salvar alterações** dos projetos importados. A demonstração não se apresenta como CAD importado.
+
+O onboarding tem quatro etapas. As opções de estética são checkboxes reais; **Continuar** avança para preferências. Para testar pelo endereço `127.0.0.1`, `next.config.ts` permite essa origem de desenvolvimento, necessária para a hidratação React no Next 16.
+
 ## Executar localmente
 
 Requer Node.js 20.9+ e Docker para o PostGIS local.
 
 ```bash
-npm install
+yarn install
 docker compose up -d
 cp .env.example .env.local
 # Preencha DATABASE_URL e as credenciais desejadas em .env.local
-npm run db:migrate
-npm run dev
+yarn db:migrate
+yarn dev
 ```
 
-`DATABASE_URL=postgresql://forma:forma@localhost:5433/forma` corresponde ao `compose.yaml`. Abra `http://localhost:3000`. Sem `BLOB_READ_WRITE_TOKEN`, a criação de projetos funciona, mas o upload CAD não. Para testar o upload direto em localhost, a [documentação do Vercel Blob](https://vercel.com/docs/vercel-blob/client-upload) informa que o callback de conclusão precisa de uma URL pública; o fluxo de importação usa também a resposta do cliente, de modo que não depende desse callback local.
+`DATABASE_URL=postgresql://forma:forma@localhost:5433/forma` corresponde ao `compose.yaml`. Abra `http://localhost:3000`. Sem `BLOB_READ_WRITE_TOKEN`, a criação de projetos e a demo funcionam, mas o upload CAD não. Para testar o upload direto em localhost, a [documentação do Vercel Blob](https://vercel.com/docs/vercel-blob/client-upload) informa que o callback de conclusão precisa de uma URL pública; o fluxo de importação usa também a resposta do cliente, de modo que não depende desse callback local.
 
 ## Variáveis de ambiente
 
@@ -42,24 +48,24 @@ O [CloudConvert Jobs API](https://cloudconvert.com/docs/api-reference/jobs) rece
 ## Testes
 
 ```bash
-npm test
-npm run build
+yarn test
+yarn build
 ```
 
 Com o servidor Next.js local e o PostGIS em execução, rode o teste HTTP completo:
 
 ```bash
-DATABASE_URL=postgresql://forma:forma@localhost:5433/forma TEST_BASE_URL=http://127.0.0.1:3000 npm test
+DATABASE_URL=postgresql://forma:forma@localhost:5433/forma TEST_BASE_URL=http://127.0.0.1:3000 yarn test
 ```
 
-O teste HTTP cria um projeto temporário, edita parede/piso/móvel, salva, recarrega, restaura uma revisão e verifica projeções PostGIS. Testes pagos de CloudConvert e OpenAI não são simulados silenciosamente; dependem de credenciais e arquivos reais.
+O teste HTTP cria um projeto temporário, edita parede/piso/móvel, salva, recarrega, restaura uma revisão e verifica projeções PostGIS. Ele também cria a demo, confere seus oito ambientes e índices espaciais, altera um cômodo, salva e recupera o resultado. Testes pagos de CloudConvert e OpenAI não são simulados silenciosamente; dependem de credenciais e arquivos reais.
 
 ## Vercel
 
 1. Importe este repositório como projeto Next.js, com diretório raiz na raiz do repositório.
 2. Crie um PostgreSQL gerenciado com PostGIS (por exemplo Neon ou Supabase) e uma Blob store privada na Vercel.
 3. Configure as variáveis acima nos ambientes necessários. Defina `APP_URL` com a URL HTTPS pública da aplicação e gere um segredo forte para `CLOUDCONVERT_SOURCE_SECRET`.
-4. Execute `npm run db:migrate` apontando para o banco de produção antes de receber usuários. `npm run build` deve passar no pipeline.
+4. Execute `yarn db:migrate` apontando para o banco de produção antes de receber usuários. `yarn build` deve passar no pipeline.
 
 Não há projeto Vercel vinculado neste repositório nem credenciais de deploy disponíveis no workspace. A publicação ainda não foi verificada.
 

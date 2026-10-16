@@ -5,6 +5,28 @@ import { simpleDxf } from './fixture'
 
 const enabled=!!process.env.TEST_BASE_URL&&!!process.env.DATABASE_URL
 describe.skipIf(!enabled)('fluxo HTTP com PostGIS',()=>{
+  it('cria a casa de demonstração editável e sincroniza a geometria espacial',async()=>{
+    const sql=postgres(process.env.DATABASE_URL!);let id='',sessionId=''
+    try{
+      const response=await fetch(`${process.env.TEST_BASE_URL}/api/projects`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Demonstração HTTP',demo:true})})
+      expect(response.status).toBe(201)
+      const cookie=response.headers.get('set-cookie')!.split(';')[0];sessionId=cookie.split('=')[1]
+      const created=await response.json();id=created.id
+      expect(created.document.rooms).toHaveLength(8)
+      expect(created.document.sourceCad.format).toBeNull()
+      const rows=await sql`SELECT kind,count(*)::int AS count FROM spatial_elements WHERE project_id=${id} GROUP BY kind`
+      expect(rows.find(r=>r.kind==='ROOM')?.count).toBe(8)
+      expect(rows.find(r=>r.kind==='WALL')?.count).toBe(created.document.walls.length)
+      const project=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}`,{headers:{Cookie:cookie}}).then(r=>r.json())
+      expect(project.document.assets).toHaveLength(2)
+      const patch=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/draft`,{method:'PATCH',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({draftVersion:0,baseRevision:0,operations:[{type:'NAME_ROOM',roomId:'demo-room-1',name:'Sala personalizada',roomType:'LIVING_ROOM'}]})})
+      expect(patch.ok).toBe(true)
+      const save=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/save`,{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({expectedRevision:0})})
+      expect(save.ok).toBe(true)
+      const reloaded=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}`,{headers:{Cookie:cookie}}).then(r=>r.json())
+      expect(reloaded.document.rooms[0].name).toBe('Sala personalizada')
+    }finally{if(id)await sql`DELETE FROM projects WHERE id=${id}`;if(sessionId)await sql`DELETE FROM sessions WHERE id=${sessionId}`;await sql.end()}
+  },30_000)
   it('cria, edita, salva, recupera e restaura revisões',async()=>{
     const sql=postgres(process.env.DATABASE_URL!);let id='',sessionId=''
     try{
