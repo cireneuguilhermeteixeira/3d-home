@@ -2,8 +2,9 @@ import DxfParser from 'dxf-parser'
 import type { ProjectDocument,Point } from './model'
 import { documentSchema } from './model'
 
-export interface CadConverter { convert(input:string, projectId:string, reference?:{entityId:string;lengthMeters:number}):ProjectDocument }
-type Raw={handle?:string;type:string;layer?:string;vertices?:{x:number;y:number;z?:number}[];start?:{x:number;y:number};end?:{x:number;y:number};startPoint?:{x:number;y:number};position?:{x:number;y:number};center?:{x:number;y:number};radius?:number;startAngle?:number;endAngle?:number;text?:string;closed?:boolean;shape?:boolean;[key:string]:unknown}
+export interface CadConverter<T=string> { convert(input:T, projectId:string, reference?:{entityId:string;lengthMeters:number}):ProjectDocument|Promise<ProjectDocument> }
+export type CadRawEntity={handle?:string;type:string;layer?:string;vertices?:{x:number;y:number;z?:number}[];start?:{x:number;y:number};end?:{x:number;y:number};startPoint?:{x:number;y:number};position?:{x:number;y:number};center?:{x:number;y:number};radius?:number;startAngle?:number;endAngle?:number;text?:string;closed?:boolean;shape?:boolean;originalCad?:Record<string,unknown>;[key:string]:unknown}
+type Raw=CadRawEntity
 const unitMeters:Record<number,number>={1:0.0254,2:0.3048,4:0.001,5:0.01,6:1,7:1000,10:0.9144,14:0.1}
 const dist=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y)
 const p=(value:{x:number;y:number},factor:number):Point=>({x:value.x*factor,y:value.y*factor})
@@ -70,11 +71,14 @@ function openingsFromEvidence(doc:ProjectDocument){
 export class DxfConverter implements CadConverter {
   convert(input:string,projectId:string,reference?:{entityId:string;lengthMeters:number}):ProjectDocument {
     const parsed=new DxfParser().parseSync(input);if(!parsed)throw new Error('DXF inválido')
-    const raw=(parsed.entities??[]) as unknown as Raw[];const header=parsed.header as Record<string,unknown>??{};const units=Number(header.$INSUNITS??0)
+    return this.convertEntities((parsed.entities??[]) as unknown as Raw[],parsed.header as Record<string,unknown>??{},parsed.blocks as unknown as Record<string,unknown>??{},projectId,reference)
+  }
+  convertEntities(raw:Raw[],header:Record<string,unknown>,blocks:Record<string,unknown>,projectId:string,reference?:{entityId:string;lengthMeters:number}):ProjectDocument {
+    const units=Number(header.$INSUNITS??0)
     let factor=unitMeters[units]??null
     if(!factor&&reference){const match=raw.find((e,i)=>(e.handle??`entity-${i}`)===reference.entityId);const pts=match?points(match):[];if(pts.length<2||reference.lengthMeters<=0)throw new Error('Medida de referência inválida');factor=reference.lengthMeters/dist(pts[0],pts[1])}
-    const base:ProjectDocument={schemaVersion:1,projectId,revision:0,site:{boundary:[],width:null,depth:null},coordinateSystem:{unit:'m',sourceUnit:units?String(units):null,metersPerSourceUnit:factor,calibrationStatus:factor?'CONFIRMED':'NEEDS_REFERENCE'},sourceCad:{fileId:null,format:'DXF',rawEntities:[],header,blocks:parsed.blocks as unknown as Record<string,unknown>??{}},rooms:[],walls:[],openings:[],surfaces:[],assets:[],preferences:{styles:[],features:[],brief:''},materials:{},camera:{position:{x:0,y:1.65,z:0},direction:{x:0,y:0,z:-1},fov:60,roomId:null,timeOfDay:'day'},metadata:{}}
-    base.sourceCad.rawEntities=raw.map((e,i)=>({id:e.handle??`entity-${i}`,type:e.type,layer:e.layer??'',original:e,points:points(e).map(v=>p(v,factor??1)),text:e.text}))
+    const base:ProjectDocument={schemaVersion:1,projectId,revision:0,site:{boundary:[],width:null,depth:null},coordinateSystem:{unit:'m',sourceUnit:units?String(units):null,metersPerSourceUnit:factor,calibrationStatus:factor?'CONFIRMED':'NEEDS_REFERENCE'},sourceCad:{fileId:null,format:'DXF',rawEntities:[],header,blocks},rooms:[],walls:[],openings:[],surfaces:[],assets:[],preferences:{styles:[],features:[],brief:''},materials:{},camera:{position:{x:0,y:1.65,z:0},direction:{x:0,y:0,z:-1},fov:60,roomId:null,timeOfDay:'day'},metadata:{}}
+    base.sourceCad.rawEntities=raw.map((e,i)=>({id:e.handle??`entity-${i}`,type:e.type,layer:e.layer??'',original:e.originalCad??e,points:points(e).map(v=>p(v,factor??1)),text:e.text}))
     if(factor){
       const all=base.sourceCad.rawEntities.flatMap(e=>e.points);if(all.length){const minX=Math.min(...all.map(v=>v.x)),maxX=Math.max(...all.map(v=>v.x)),minY=Math.min(...all.map(v=>v.y)),maxY=Math.max(...all.map(v=>v.y));base.site={width:maxX-minX,depth:maxY-minY,boundary:[]}}
       base.walls=wallFaces(base.sourceCad.rawEntities)

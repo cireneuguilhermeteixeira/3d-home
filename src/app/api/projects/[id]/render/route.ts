@@ -10,7 +10,6 @@ const camera=z.object({position:z.object({x:z.number(),y:z.number(),z:z.number()
 const input=z.object({mode:z.enum(['screenshot','metadata']).default('screenshot'),screenshot:z.string().optional(),camera})
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
   if(!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY não configurada')
-  if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('BLOB_READ_WRITE_TOKEN não configurado')
   const id=(await params).id;const body=input.parse(await request.json());const current=await readProject(id)
   if(body.mode==='screenshot'&&(!body.screenshot?.startsWith('data:image/png;base64,')||body.screenshot.length>6_000_000))throw new Error('Screenshot PNG inválido ou grande demais')
   await reservePaid('render',5)

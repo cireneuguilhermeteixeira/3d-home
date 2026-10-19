@@ -4,9 +4,9 @@ Aplicação Next.js para importar plantas CAD, revisar ambientes, explorar uma m
 
 ## Estado atual
 
-O fluxo local de criação, normalização **DXF**, edição, salvamento, restauração e exportação CSV foi implementado e testado. A transferência DXF pelo Blob ainda precisa de teste com credencial externa. A integração **DWG real** usa CloudConvert para converter DWG em DXF antes da normalização; não há parser DWG disfarçado. Essa integração, a interpretação OpenAI e a geração de imagem precisam das credenciais listadas abaixo e ainda não foram verificadas com contas externas. Consulte [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) para o estado preciso de cada requisito.
+O fluxo local de criação, normalização **DXF/DWG**, edição, salvamento, restauração e exportação CSV foi implementado e testado. O DWG é lido como binário pelo **LibreDWG em WebAssembly**, sem API externa de conversão. Um DWG real de teste passou pelo upload local, foi convertido para JSON e recuperado do banco. A transferência pelo Blob na Vercel e plantas arquitetônicas variadas ainda precisam de validação. A interpretação OpenAI e a geração de imagem precisam das credenciais listadas abaixo. Consulte [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) para o estado preciso de cada requisito.
 
-O modelo arquitetônico preserva as entidades CAD originais em `sourceCad.rawEntities`, mantém paredes/ambientes/aberturas interpretados em campos próprios e móveis/materiais em dados de design. As geometrias usam metros quando a unidade do DXF é conhecida. Se `$INSUNITS` não for confiável, a interface pede uma medida de referência antes de construir a maquete.
+O modelo arquitetônico preserva as entidades CAD originais em `sourceCad.rawEntities`, mantém paredes/ambientes/aberturas interpretados em campos próprios e móveis/materiais em dados de design. As geometrias usam metros quando a unidade do CAD é conhecida. Se `$INSUNITS` não for confiável, a interface pede uma medida de referência antes de construir a maquete.
 
 ## Experimentar sem arquivo CAD
 
@@ -19,59 +19,58 @@ O onboarding tem quatro etapas. As opções de estética são checkboxes reais; 
 Requer Node.js 20.9+ e Docker para o PostGIS local.
 
 ```bash
-yarn install
+npm ci
 docker compose up -d
 cp .env.example .env.local
 # Preencha DATABASE_URL e as credenciais desejadas em .env.local
-yarn db:migrate
-yarn dev
+npm run db:migrate
+npm run dev
 ```
 
-`DATABASE_URL=postgresql://forma:forma@localhost:5433/forma` corresponde ao `compose.yaml`. Abra `http://localhost:3000`. Sem `BLOB_READ_WRITE_TOKEN`, a criação de projetos e a demo funcionam, mas o upload CAD não. Para testar o upload direto em localhost, a [documentação do Vercel Blob](https://vercel.com/docs/vercel-blob/client-upload) informa que o callback de conclusão precisa de uma URL pública; o fluxo de importação usa também a resposta do cliente, de modo que não depende desse callback local.
+`DATABASE_URL=postgresql://forma:forma@localhost:5433/forma` corresponde ao `compose.yaml`. Abra `http://localhost:3000`. Em `npm run dev`, o upload CAD funciona **sem Blob**: se não houver store configurada, o original fica em `.forma-local-files/`, diretório ignorado pelo Git. Na Vercel, conecte uma store **private** do Vercel Blob; o armazenamento local não é usado em produção. Em deploys com OIDC, `BLOB_STORE_ID` e a identidade do projeto substituem o token fixo. Com Blob, o navegador usa uma URL assinada e envia o arquivo diretamente à store, inclusive arquivos maiores que o limite das Functions.
 
 ## Variáveis de ambiente
 
 | Variável | Uso |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL com extensão PostGIS. |
-| `BLOB_READ_WRITE_TOKEN` | Blob privado para arquivos CAD e renders. Crie uma store **private** na Vercel. |
-| `CLOUDCONVERT_API_KEY` | Conversão DWG→DXF. |
-| `CLOUDCONVERT_SOURCE_SECRET` | Chave aleatória longa para URLs temporárias usadas pela CloudConvert. |
-| `APP_URL` | URL HTTPS pública do deploy para a CloudConvert baixar o DWG privado pela rota assinada. |
+| `BLOB_READ_WRITE_TOKEN` | Credencial alternativa para Blob, útil em localhost ou stores antigas. Não é necessária com store OIDC conectada. |
+| `BLOB_STORE_ID` | Identificador da store Blob usado com OIDC; a integração Vercel o fornece ao projeto. |
 | `OPENAI_API_KEY` | Interpretação de comandos e geração de imagem, somente no servidor. |
 | `OPENAI_TEXT_MODEL` | Modelo de texto; padrão `gpt-4.1-mini`. |
 | `OPENAI_IMAGE_MODEL` | Modelo de imagem; padrão `gpt-image-1`. |
 | `OPENAI_IMAGE_QUALITY` | `low`, `medium` ou `high`; padrão `medium`. |
 
-O [CloudConvert Jobs API](https://cloudconvert.com/docs/api-reference/jobs) recebe uma URL assinada do DWG privado e retorna um DXF. A avaliação da [Autodesk Automation API](https://aps.autodesk.com/automation-apis) mostrou que o caminho nativo exigiria atividade e AppBundle AutoCAD próprios. A conversão DWG→DXF da CloudConvert é a dependência externa mais simples para este MVP. A importação aceita o arquivo original `.dwg` e conserva o formato de origem no JSON.
+O parser [`@mlightcad/libredwg-web`](https://github.com/mlightcad/libredwg-web) roda na função Node.js do Next e lê o DWG do armazenamento configurado; não envia o desenho a um serviço de conversão. O DWG original continua armazenado para reprocessamento. A dependência usa **GPL-3.0**: avalie as obrigações dessa licença antes de distribuir uma versão proprietária. O módulo WebAssembly inicia com reserva de memória alta e pode falhar em DWGs complexos; nesse caso, a importação informa o erro e mantém o original. Para reprocessar, abra o projeto e informe a medida de referência ou importe novamente.
 
 ## Testes
 
 ```bash
-yarn test
-yarn build
+npm test
+npm run build
 ```
 
 Com o servidor Next.js local e o PostGIS em execução, rode o teste HTTP completo:
 
 ```bash
-DATABASE_URL=postgresql://forma:forma@localhost:5433/forma TEST_BASE_URL=http://127.0.0.1:3000 yarn test
+DATABASE_URL=postgresql://forma:forma@localhost:5433/forma TEST_BASE_URL=http://127.0.0.1:3000 npm test
 ```
 
-O teste HTTP cria um projeto temporário, edita parede/piso/móvel, salva, recarrega, restaura uma revisão e verifica projeções PostGIS. Ele também cria a demo, confere seus oito ambientes e índices espaciais, altera um cômodo, salva e recupera o resultado. Testes pagos de CloudConvert e OpenAI não são simulados silenciosamente; dependem de credenciais e arquivos reais.
+O teste HTTP cria um projeto temporário, envia um DWG binário pelo armazenamento local, converte, persiste e recupera coordenadas. Também edita parede/piso/móvel, salva, recarrega, restaura revisão e verifica PostGIS, além de testar a demo. `tests/dwg.test.ts` lê o mesmo DWG real do projeto GNU LibreDWG; a atribuição está em `tests/fixture-sample-2000.LICENSE.md`. Upload Blob e chamadas OpenAI reais dependem de credenciais.
 
 ## Vercel
 
 1. Importe este repositório como projeto Next.js, com diretório raiz na raiz do repositório.
 2. Crie um PostgreSQL gerenciado com PostGIS (por exemplo Neon ou Supabase) e uma Blob store privada na Vercel.
-3. Configure as variáveis acima nos ambientes necessários. Defina `APP_URL` com a URL HTTPS pública da aplicação e gere um segredo forte para `CLOUDCONVERT_SOURCE_SECRET`.
-4. Execute `yarn db:migrate` apontando para o banco de produção antes de receber usuários. `yarn build` deve passar no pipeline.
+3. Configure as variáveis acima nos ambientes necessários. Nenhuma chave de conversão DWG é necessária.
+4. Execute `npm run db:migrate` apontando para o banco de produção antes de receber usuários. `npm run build` deve passar no pipeline.
 
 Não há projeto Vercel vinculado neste repositório nem credenciais de deploy disponíveis no workspace. A publicação ainda não foi verificada.
 
 ## Limitações conhecidas
 
 - O parser DXF preserva entidades não interpretadas. A interpretação arquitetônica cobre pares de linhas de parede, polilinhas fechadas de ambientes e aberturas com evidência explícita em layers/anotações. `h`, `PD`, `PDL`, `PDV` e `PDF` são preservados; associações ambíguas não são aplicadas. Plantas CAD variadas ainda precisam de validação antes de confiar em quantitativos de paredes.
+- O LibreDWG/WASM passou em um DWG binário de teste, mas outro arquivo do conjunto GNU LibreDWG provocou erro interno do parser. Arquivos não suportados falham de forma explícita e conservam o original. O DWG de teste não é uma planta arquitetônica; ainda falta testar uma planta real com paredes, portas e cômodos.
 - A navegação Three.js foi portada do projeto antigo e as vistas CAD/3D foram abertas no Chrome com uma planta de teste. Ainda faltam testes de navegação e colisão com plantas variadas. Sem escala confirmada, a vista 3D fica bloqueada.
 - A biblioteca inicial contém dois GLB reais; licenças e atribuições estão em `public/assets/LICENSES.md`. Não há preços de fornecedor cadastrados.
 - O acesso usa sessão privada por cookie, sem conta/login. Perder o cookie impede abrir o projeto. Para um SaaS multiusuário, é necessário adicionar autenticação e recuperação de conta.

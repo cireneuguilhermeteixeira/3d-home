@@ -1,0 +1,1 @@
+Arquivo `fixture-sample-2000.dwg` obtido do repositório [GNU LibreDWG](https://github.com/LibreDWG/libredwg/blob/master/test/test-data/sample_2000.dwg), distribuído sob GPL-3.0-or-later. Usado apenas como fixture de teste de leitura binária; não representa uma planta arquitetônica.

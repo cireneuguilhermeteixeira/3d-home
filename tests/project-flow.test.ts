@@ -1,10 +1,49 @@
 import { describe,it,expect } from 'vitest'
 import postgres from 'postgres'
+import { readFileSync } from 'node:fs'
+import { unlink } from 'node:fs/promises'
+import path from 'node:path'
 import { DxfConverter } from '../src/lib/cad'
 import { simpleDxf } from './fixture'
 
 const enabled=!!process.env.TEST_BASE_URL&&!!process.env.DATABASE_URL
 describe.skipIf(!enabled)('fluxo HTTP com PostGIS',()=>{
+  it('envia DWG binário local, converte, persiste e recupera as coordenadas',async()=>{
+    const sql=postgres(process.env.DATABASE_URL!);let id='',sessionId='',pathname=''
+    try{
+      const created=await fetch(`${process.env.TEST_BASE_URL}/api/projects`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Importação DWG local'})})
+      expect(created.status).toBe(201)
+      const cookie=created.headers.get('set-cookie')!.split(';')[0];sessionId=cookie.split('=')[1];id=(await created.json()).id
+      pathname=`cad/${id}/${crypto.randomUUID()}-sample_2000.dwg`
+      const form=new FormData();form.set('pathname',pathname);form.set('file',new File([readFileSync(new URL('./fixture-sample-2000.dwg',import.meta.url))],'sample_2000.dwg',{type:'image/vnd.dwg'}))
+      const uploaded=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/upload`,{method:'POST',headers:{Cookie:cookie},body:form})
+      expect(uploaded.ok,await uploaded.text()).toBe(true)
+      const imported=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/import`,{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({pathname})})
+      const result=await imported.json();expect(imported.ok,JSON.stringify(result)).toBe(true)
+      expect(result.document.sourceCad.format).toBe('DWG')
+      expect(result.document.sourceCad.rawEntities).toHaveLength(6)
+      expect(result.document.sourceCad.rawEntities.find((entity:{type:string})=>entity.type==='CIRCLE').points[0].x).toBeCloseTo(.2196812627452187)
+      const loaded=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}`,{headers:{Cookie:cookie}}).then(response=>response.json())
+      expect(loaded.document.sourceCad.rawEntities).toHaveLength(6)
+      expect(loaded.document.sourceCad.fileId).toBeTruthy()
+    }finally{
+      if(id)await sql`DELETE FROM projects WHERE id=${id}`
+      if(sessionId)await sql`DELETE FROM sessions WHERE id=${sessionId}`
+      if(pathname)await unlink(path.join(process.cwd(),'.forma-local-files',pathname)).catch(()=>{})
+      await sql.end()
+    }
+  },30_000)
+  it.skipIf(!!process.env.BLOB_READ_WRITE_TOKEN || !!process.env.BLOB_STORE_ID)('explica a falta de conexão Blob',async()=>{
+    const sql=postgres(process.env.DATABASE_URL!);let id='',sessionId=''
+    try{
+      const created=await fetch(`${process.env.TEST_BASE_URL}/api/projects`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Diagnóstico de upload'})})
+      expect(created.status).toBe(201)
+      const cookie=created.headers.get('set-cookie')!.split(';')[0];sessionId=cookie.split('=')[1];id=(await created.json()).id
+      const response=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/upload`,{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({pathname:`cad/${id}/00000000-0000-4000-8000-000000000000-planta.dwg`,size:1024})})
+      expect(response.status).toBe(503)
+      expect((await response.json()).error).toContain('Vercel Blob não configurado')
+    }finally{if(id)await sql`DELETE FROM projects WHERE id=${id}`;if(sessionId)await sql`DELETE FROM sessions WHERE id=${sessionId}`;await sql.end()}
+  },30_000)
   it('cria a casa de demonstração editável e sincroniza a geometria espacial',async()=>{
     const sql=postgres(process.env.DATABASE_URL!);let id='',sessionId=''
     try{
