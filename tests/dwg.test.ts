@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { DwgConverter } from '../src/lib/dwg'
+import { DwgConverter, jsonSafeDwg } from '../src/lib/dwg'
 
 const projectId = 'f6f08f36-b2ec-44c1-b1de-e67141478ae0'
 const fixture = readFileSync(new URL('./fixture-sample-2000.dwg', import.meta.url))
@@ -22,5 +22,11 @@ describe('importação DWG real com LibreDWG', () => {
 
   it('recusa arquivo DXF renomeado como DWG', async () => {
     await expect(new DwgConverter().convert(new TextEncoder().encode('0\nSECTION\n').buffer, projectId)).rejects.toThrow('assinatura AutoCAD ausente')
+  })
+  it('preserva BigInt de metadados CAD como string decimal exata no JSON', () => {
+    const source = { header: { handle: 9007199254740993n }, entities: [{ id: 42n, nested: { count: 18446744073709551615n } }] }
+    const sanitized = jsonSafeDwg(source)
+    expect(JSON.stringify(sanitized)).toContain('"9007199254740993"')
+    expect(sanitized.entities[0].nested.count).toBe('18446744073709551615')
   })
 })

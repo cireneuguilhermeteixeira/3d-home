@@ -4,6 +4,12 @@ import { DxfConverter, type CadConverter, type CadRawEntity } from './cad'
 import type { ProjectDocument } from './model'
 
 type Coordinate = { x: number; y: number; z?: number }
+type JsonSafe<T> = T extends bigint ? string : T extends (infer Item)[] ? JsonSafe<Item>[] : T extends object ? { [Key in keyof T]: JsonSafe<T[Key]> } : T
+
+/** JSONB has no BigInt type; retain exact CAD values as decimal strings. */
+export function jsonSafeDwg<T>(value: T): JsonSafe<T> {
+  return JSON.parse(JSON.stringify(value, (_, item: unknown) => typeof item === 'bigint' ? item.toString() : item)) as JsonSafe<T>
+}
 function point(value: unknown): Coordinate | undefined {
   if (!value || typeof value !== 'object') return undefined
   const candidate = value as Record<string, unknown>
@@ -71,9 +77,9 @@ export class DwgConverter implements CadConverter<ArrayBuffer> {
       if (!data) throw new Error('LibreDWG não conseguiu ler este DWG')
       const { database, stats } = parser.convertEx(data)
       if (!database.entities.length) throw new Error('DWG sem entidades legíveis no espaço de modelo')
-      const header = { ...(database.header as unknown as Record<string, unknown>), $INSUNITS: database.header.INSUNITS ?? 0 }
-      const blocks = Object.fromEntries(database.tables.BLOCK_RECORD.entries.map(block => [block.name, block])) as Record<string, unknown>
-      const document = new DxfConverter().convertEntities(entitiesFromDwg(database), header, blocks, projectId, reference)
+      const header = jsonSafeDwg({ ...(database.header as unknown as Record<string, unknown>), $INSUNITS: database.header.INSUNITS ?? 0 })
+      const blocks = jsonSafeDwg(Object.fromEntries(database.tables.BLOCK_RECORD.entries.map(block => [block.name, block])) as Record<string, unknown>)
+      const document = new DxfConverter().convertEntities(jsonSafeDwg(entitiesFromDwg(database)), header, blocks, projectId, reference)
       document.sourceCad.format = 'DWG'
       document.metadata.dwgParser = { name: 'LibreDWG WebAssembly', unknownEntityCount: stats.unknownEntityCount }
       return document
