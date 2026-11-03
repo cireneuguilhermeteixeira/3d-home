@@ -57,8 +57,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   try {
     const id = (await params).id
     await readProject(id)
-    const files = await db()`SELECT id,pathname,format FROM project_files WHERE project_id=${id} ORDER BY created_at DESC LIMIT 1`
-    return Response.json({ latestFile: files[0] ?? null })
+    const files = await db()`SELECT id,pathname,format,created_at FROM project_files WHERE project_id=${id} ORDER BY created_at DESC`
+    return Response.json({ latestFile: files[0] ?? null, files })
   } catch (error) {
     return failure(error)
   }
