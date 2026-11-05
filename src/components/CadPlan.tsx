@@ -4,8 +4,11 @@ import { useEditor } from '@/stores/editor-store'
 import Icon from './PrototypeIcon'
 export default function CadPlan({document:doc}:{document:ProjectDocument}){
   const select=useEditor(s=>s.select),selected=useEditor(s=>s.selected),apply=useEditor(s=>s.apply)
-  const points=[...doc.site.boundary,...doc.walls.flatMap(w=>[w.start,w.end]),...doc.rooms.flatMap(r=>r.polygon),...doc.sourceCad.rawEntities.flatMap(e=>e.points)]
-  const xs=points.map(p=>p.x),ys=points.map(p=>p.y),minX=Math.min(...xs,0),minY=Math.min(...ys,0),maxX=Math.max(...xs,12),maxY=Math.max(...ys,12),spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY)
+  const contours=doc.sourceCad.rawEntities.filter(e=>e.points.length>=3&&(e.original.closed===true||e.original.shape===true)).flatMap(e=>e.points)
+  const structural=[...doc.site.boundary,...doc.walls.flatMap(w=>[w.start,w.end]),...doc.rooms.flatMap(r=>r.polygon)]
+  const drawing=doc.sourceCad.rawEntities.filter(e=>e.points.length>1).flatMap(e=>e.points)
+  const points=structural.length?structural:contours.length?contours:drawing.length?drawing:[{x:0,y:0},{x:12,y:12}]
+  const xs=points.map(p=>p.x),ys=points.map(p=>p.y),minX=Math.min(...xs),minY=Math.min(...ys),maxX=Math.max(...xs),maxY=Math.max(...ys),spanX=Math.max(0.01,maxX-minX),spanY=Math.max(0.01,maxY-minY)
   const w=420,h=665,pad=33,scale=Math.min((w-2*pad)/spanX,(h-2*pad)/spanY),offsetX=(w-spanX*scale)/2,offsetY=(h-spanY*scale)/2
   const x=(v:number)=>offsetX+(v-minX)*scale,y=(v:number)=>offsetY+(v-minY)*scale
   const palette=['#dfe9de','#e8e5db','#e2e9ef','#e8e1ec','#e9e6dc','#e0e9e4','#e4eadf','#f0f2ed']
