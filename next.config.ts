@@ -1,8 +1,11 @@
 import type { NextConfig } from 'next'
+import path from 'node:path'
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['dxf-parser', '@mlightcad/libredwg-web'],
-  outputFileTracingIncludes: {
-    '/api/projects/*/import': ['./node_modules/@mlightcad/libredwg-web/wasm/**/*'],
+  serverExternalPackages: ['dxf-parser'],
+  experimental: {
+    turbopackAdditionalRoots: {
+      cadcraftJs: { path: path.join(process.cwd(), '../craft-apps/cadcraft/js') },
+    },
   },
   allowedDevOrigins: ['127.0.0.1'],
 }

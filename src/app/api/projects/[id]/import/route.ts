@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { db, readProject, writeDraft } from '@/lib/db'
 import { DxfConverter } from '@/lib/cad'
 import { DwgConverter } from '@/lib/dwg'
+import { dwgArchivePathname, saveDwgArchive, type DwgArchiveReference } from '@/lib/dwg-archive'
+import type { DwgDocument } from 'dwg-json'
 import { loadLocalCad, validCadPath } from '@/lib/cad-storage'
 import { failure } from '@/lib/http'
 
@@ -42,6 +44,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const imported = format === 'DWG'
       ? await new DwgConverter().convert(source, id, body.reference)
       : new DxfConverter().convert(new TextDecoder().decode(source), id, body.reference)
+    if (format === 'DWG') {
+      const archive = imported.metadata.dwgJson as DwgDocument
+      const previous = current.document.metadata.dwgArchive as DwgArchiveReference | undefined
+      const archivePath = dwgArchivePathname(id, pathname)
+      imported.metadata.dwgArchive = previous?.pathname === archivePath && previous.sourceSha256 === archive.source.sha256
+        ? previous
+        : await saveDwgArchive(id, pathname, archive, !!local)
+      delete imported.metadata.dwgJson
+    }
     imported.preferences = current.document.preferences
     imported.materials = current.document.materials
     imported.sourceCad.fileId = fileId

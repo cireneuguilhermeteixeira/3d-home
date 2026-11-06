@@ -10,10 +10,11 @@
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
-    "@mlightcad/libredwg-web": "^0.8.0",
     "@react-three/drei": "^10.7.0",
     "@react-three/fiber": "^9.3.0",
     "@vercel/blob": "^2.0.0",
+    "acadrust-js": "file:../craft-apps/cadcraft/js/acadrust-js",
+    "dwg-json": "file:../craft-apps/cadcraft/js/dwg-json",
     "dxf-parser": "^1.1.2",
     "next": "16.4.1",
     "openai": "^6.0.0",

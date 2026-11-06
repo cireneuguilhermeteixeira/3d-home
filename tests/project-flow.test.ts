@@ -22,14 +22,25 @@ describe.skipIf(!enabled)('fluxo HTTP com PostGIS',()=>{
       const result=await imported.json();expect(imported.ok,JSON.stringify(result)).toBe(true)
       expect(result.document.sourceCad.format).toBe('DWG')
       expect(result.document.sourceCad.rawEntities).toHaveLength(6)
-      expect(result.document.sourceCad.rawEntities.find((entity:{type:string})=>entity.type==='CIRCLE').points[0].x).toBeCloseTo(.2196812627452187)
+      expect(result.document.sourceCad.rawEntities.find((entity:{type:string})=>entity.type==='CIRCLE').points[0].x).toBeCloseTo(219.6812627452187)
+      expect(result.document.coordinateSystem.calibrationStatus).toBe('NEEDS_REFERENCE')
+      expect(result.document.metadata.dwgArchive.layouts).toEqual(['Layout1','Layout2'])
+      expect(result.document.metadata.dwgJson).toBeUndefined()
+      const archiveResponse=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}/dwg-json`,{headers:{Cookie:cookie}})
+      const archiveText=await archiveResponse.text()
+      expect(archiveResponse.ok,archiveText.slice(0,300)).toBe(true)
+      const archive=JSON.parse(archiveText)
+      expect(archive.layouts.map((layout:{name:string})=>layout.name)).toEqual(['Layout1','Layout2'])
+      expect(archive.source.sha256).toBe(result.document.metadata.dwgArchive.sourceSha256)
       const loaded=await fetch(`${process.env.TEST_BASE_URL}/api/projects/${id}`,{headers:{Cookie:cookie}}).then(response=>response.json())
       expect(loaded.document.sourceCad.rawEntities).toHaveLength(6)
       expect(loaded.document.sourceCad.fileId).toBeTruthy()
+      expect(loaded.document.metadata.dwgArchive.sourceSha256).toBe(result.document.metadata.dwgArchive.sourceSha256)
     }finally{
       if(id)await sql`DELETE FROM projects WHERE id=${id}`
       if(sessionId)await sql`DELETE FROM sessions WHERE id=${sessionId}`
       if(pathname)await unlink(path.join(process.cwd(),'.forma-local-files',pathname)).catch(()=>{})
+      if(pathname)await unlink(path.join(process.cwd(),'.forma-local-files',`${pathname}.json.gz`)).catch(()=>{})
       await sql.end()
     }
   },30_000)

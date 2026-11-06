@@ -1,6 +1,7 @@
 services:
   postgis:
     image: postgis/postgis:16-3.4
+    restart: unless-stopped
     ports:
       - "5433:5432"
     environment:

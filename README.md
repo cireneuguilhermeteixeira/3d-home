@@ -4,9 +4,9 @@ Aplicação Next.js para importar plantas CAD, revisar ambientes, explorar uma m
 
 ## Estado atual
 
-O fluxo local de criação, normalização **DXF/DWG**, edição, salvamento, restauração e exportação CSV foi implementado e testado. O DWG é lido como binário pelo **LibreDWG em WebAssembly**, sem API externa de conversão. Um DWG real de teste passou pelo upload local, foi convertido para JSON e recuperado do banco. A transferência pelo Blob na Vercel e plantas arquitetônicas variadas ainda precisam de validação. A interpretação OpenAI e a geração de imagem precisam das credenciais listadas abaixo. Consulte [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) para o estado preciso de cada requisito.
+O fluxo local de criação, normalização **DXF/DWG**, edição, salvamento, restauração e exportação CSV foi implementado e testado. O DWG é lido pelas bibliotecas JavaScript locais **acadrust-js** e **dwg-json**, sem WASM ou serviço externo. O JSON integral é guardado como arquivo privado `.json.gz` com SHA-256, separado do documento do projeto para não ultrapassar o limite JSONB do PostgreSQL. A transferência pelo Blob na Vercel e plantas arquitetônicas variadas ainda precisam de validação. A interpretação OpenAI e a geração de imagem precisam das credenciais listadas abaixo. Consulte [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) para o estado preciso de cada requisito.
 
-O modelo arquitetônico preserva as entidades CAD originais em `sourceCad.rawEntities`, mantém paredes/ambientes/aberturas interpretados em campos próprios e móveis/materiais em dados de design. As geometrias usam metros quando a unidade do CAD é conhecida. Se `$INSUNITS` não for confiável, a interface pede uma medida de referência antes de construir a maquete.
+O modelo arquitetônico preserva as entidades CAD usadas pelo editor em `sourceCad.rawEntities`; `metadata.dwgArchive` aponta para o JSON DWG integral compactado, que contém o DWG original em Base64. O endpoint autenticado `GET /api/projects/{id}/dwg-json` entrega esse JSON com transporte gzip. Paredes, ambientes e aberturas interpretados ficam em campos próprios. O leitor JavaScript ainda não extrai `$INSUNITS`; depois de importar DWG, informe uma medida de referência para converter coordenadas em metros e liberar a maquete.
 
 ## Experimentar sem arquivo CAD
 
@@ -41,7 +41,7 @@ npm run dev
 | `OPENAI_IMAGE_MODEL` | Modelo de imagem; padrão `gpt-image-1`. |
 | `OPENAI_IMAGE_QUALITY` | `low`, `medium` ou `high`; padrão `medium`. |
 
-O parser [`@mlightcad/libredwg-web`](https://github.com/mlightcad/libredwg-web) roda na função Node.js do Next e lê o DWG do armazenamento configurado; não envia o desenho a um serviço de conversão. O DWG original continua armazenado para reprocessamento. A dependência usa **GPL-3.0**: avalie as obrigações dessa licença antes de distribuir uma versão proprietária. O módulo WebAssembly inicia com reserva de memória alta e pode falhar em DWGs complexos; nesse caso, a importação informa o erro e mantém o original. Para reprocessar, abra o projeto e informe a medida de referência ou importe novamente.
+`acadrust-js` e `dwg-json` são dependências locais MPL-2.0 apontadas para `../craft-apps/cadcraft/js/`. Esse checkout irmão precisa existir para `npm ci`; antes de publicar ou implantar o app isoladamente, mova as bibliotecas para este repositório ou publique os pacotes e atualize as dependências. A atribuição do port e o aviso MIT de terceiro estão nos arquivos `NOTICE.md` e `THIRD_PARTY_NOTICES.md` dos pacotes. O DWG original também continua no armazenamento de arquivos do projeto. Para reprocessar, abra o projeto e informe a medida de referência ou importe novamente.
 
 ## Testes
 
@@ -56,7 +56,7 @@ Com o servidor Next.js local e o PostGIS em execução, rode o teste HTTP comple
 DATABASE_URL=postgresql://forma:forma@localhost:5433/forma TEST_BASE_URL=http://127.0.0.1:3000 npm test
 ```
 
-O teste HTTP cria um projeto temporário, envia um DWG binário pelo armazenamento local, converte, persiste e recupera coordenadas. Também edita parede/piso/móvel, salva, recarrega, restaura revisão e verifica PostGIS, além de testar a demo. `tests/dwg.test.ts` lê o mesmo DWG real do projeto GNU LibreDWG; a atribuição está em `tests/fixture-sample-2000.LICENSE.md`. Upload Blob e chamadas OpenAI reais dependem de credenciais.
+O teste HTTP cria um projeto temporário, envia um DWG binário pelo armazenamento local, converte, persiste o JSON compactado e o recupera pela API. Também edita parede/piso/móvel, salva, recarrega, restaura revisão e verifica PostGIS, além de testar a demo. `tests/dwg.test.ts` lê o mesmo DWG real do projeto GNU LibreDWG; a atribuição está em `tests/fixture-sample-2000.LICENSE.md`. Upload Blob e chamadas OpenAI reais dependem de credenciais.
 
 ## Vercel
 
@@ -70,7 +70,7 @@ Não há projeto Vercel vinculado neste repositório nem credenciais de deploy d
 ## Limitações conhecidas
 
 - O parser DXF preserva entidades não interpretadas. A interpretação arquitetônica cobre pares de linhas de parede, polilinhas fechadas de ambientes e aberturas com evidência explícita em layers/anotações. `h`, `PD`, `PDL`, `PDV` e `PDF` são preservados; associações ambíguas não são aplicadas. Plantas CAD variadas ainda precisam de validação antes de confiar em quantitativos de paredes.
-- O LibreDWG/WASM passou em um DWG binário de teste, mas outro arquivo do conjunto GNU LibreDWG provocou erro interno do parser. Arquivos não suportados falham de forma explícita e conservam o original. O DWG de teste não é uma planta arquitetônica; ainda falta testar uma planta real com paredes, portas e cômodos.
+- `acadrust-js` ainda não interpreta todos os tipos e versões de DWG. O JSON mantém os bytes originais, mas arquivos sem estrutura legível não entram no editor. O DWG de teste não é uma planta arquitetônica; ainda falta testar uma planta real com paredes, portas, cômodos, legendas e instalações.
 - A navegação Three.js foi portada do projeto antigo e as vistas CAD/3D foram abertas no Chrome com uma planta de teste. Ainda faltam testes de navegação e colisão com plantas variadas. Sem escala confirmada, a vista 3D fica bloqueada.
 - A biblioteca inicial contém dois GLB reais; licenças e atribuições estão em `public/assets/LICENSES.md`. Não há preços de fornecedor cadastrados.
 - O acesso usa sessão privada por cookie, sem conta/login. Perder o cookie impede abrir o projeto. Para um SaaS multiusuário, é necessário adicionar autenticação e recuperação de conta.
