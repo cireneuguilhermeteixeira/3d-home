@@ -69,7 +69,11 @@ export function walkSpawn(scene: Scene, barriers: Barrier[]): Point {
   const free = (point: Point) => canStand(point, barriers, 0.22) && scene.elements.every(element =>
     !element.center || Math.hypot(point.x - element.center.x, point.y - element.center.y) > (element.radius ?? 0.4) + 0.3)
   for (const room of centers) if (free(room.center)) return room.center
-  const center = centers[0]?.center ?? { x: scene.site.width / 2, y: scene.site.depth / 2 }
+  const drawing = scene.site.boundary.length ? scene.site.boundary : scene.walls.length ? scene.walls.flatMap(wall => [wall.start, wall.end]) : scene.lines.flatMap(line => line.points)
+  const center = centers[0]?.center ?? (drawing.length ? {
+    x: (Math.min(...drawing.map(point => point.x)) + Math.max(...drawing.map(point => point.x))) / 2,
+    y: (Math.min(...drawing.map(point => point.y)) + Math.max(...drawing.map(point => point.y))) / 2,
+  } : { x: scene.site.width / 2, y: scene.site.depth / 2 })
   for (let radius = 0.25; radius <= 2; radius += 0.25)
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
       const point = { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }

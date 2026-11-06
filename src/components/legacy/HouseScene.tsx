@@ -17,17 +17,16 @@ const VISUAL_UNMEASURED_WINDOW_HEIGHT = 1.0
 const VISUAL_UNMEASURED_WINDOW_SILL = 1.0
 
 function boundsOf(scene: Scene): Bounds {
+  const structural = scene.site.boundary.length ? scene.site.boundary : scene.walls.flatMap(wall => [wall.start, wall.end])
+  const contours = scene.lines.filter(line => line.points.length >= 3).flatMap(line => line.points)
+  const points = structural.length ? structural : contours.length ? contours : scene.lines.filter(line => line.points.length > 1).flatMap(line => line.points)
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const line of scene.lines) for (const point of line.points) {
-    minX = Math.min(minX, point.x); minY = Math.min(minY, point.y)
-    maxX = Math.max(maxX, point.x); maxY = Math.max(maxY, point.y)
-  }
-  for (const point of scene.site.boundary) {
+  for (const point of points) {
     minX = Math.min(minX, point.x); minY = Math.min(minY, point.y)
     maxX = Math.max(maxX, point.x); maxY = Math.max(maxY, point.y)
   }
   if (!Number.isFinite(minX)) { minX = 0; minY = 0; maxX = scene.site.width; maxY = scene.site.depth }
-  return { width: maxX - minX, depth: maxY - minY, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 }
+  return { width: Math.max(maxX - minX, 1), depth: Math.max(maxY - minY, 1), centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 }
 }
 
 function CameraControls({ bounds, mode, reset }: { bounds: Bounds; mode: 'cad' | '3d'; reset: number }) {
@@ -44,9 +43,9 @@ function CameraControls({ bounds, mode, reset }: { bounds: Bounds; mode: 'cad' |
     } else {
       const cam = camera as PerspectiveCamera
       cam.fov = 45; cam.aspect = aspect
-      const span = Math.max(bounds.width, bounds.depth, 1)
-      cam.position.set(bounds.centerX + Math.max(span * 1.5, 5),
-        Math.max(span * 1.5, 6), bounds.centerY + Math.max(span * 1.25, 5))
+      const distance = Math.max(bounds.depth, bounds.width / aspect) * 1.5
+      cam.position.set(bounds.centerX + distance * 0.65,
+        Math.max(distance * 0.9, 4), bounds.centerY + distance * 0.7)
       cam.up.set(0, 1, 0)
     }
     camera.lookAt(bounds.centerX, 0, bounds.centerY)
@@ -55,7 +54,7 @@ function CameraControls({ bounds, mode, reset }: { bounds: Bounds; mode: 'cad' |
     controls.current?.update()
   }, [camera, size.width, size.height, bounds, mode, reset])
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.12}
-    screenSpacePanning minDistance={3} maxDistance={130} minZoom={0.5} maxZoom={15} enableRotate={mode === '3d'} />
+    screenSpacePanning minDistance={0.5} maxDistance={Math.max(130, bounds.width * 5, bounds.depth * 5)} minZoom={0.5} maxZoom={30} enableRotate={mode === '3d'} />
 }
 
 function siteShape(scene: Scene) {
