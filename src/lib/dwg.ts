@@ -2,6 +2,7 @@ import { convertDwgBuffer, to3dHomeSourceCad } from 'dwg-json'
 import { DxfConverter, type CadConverter, type CadRawEntity } from './cad'
 import type { ProjectDocument } from './model'
 import { findDwgOpeningInserts, findDwgPlans, projectDwgPlan } from './dwg-plans'
+import { applyDwgWallHeights, integrateDwgOpeningsIntoWalls } from './dwg-walls'
 
 export function addBlockOpenings(document:ProjectDocument, archive:Parameters<typeof findDwgOpeningInserts>[0], planId:string, raw:CadRawEntity[]){
   const factor=document.coordinateSystem.metersPerSourceUnit??1
@@ -47,7 +48,6 @@ export function addBlockOpenings(document:ProjectDocument, archive:Parameters<ty
     document.openings.push(opening)
     if(attached)attached.wall.openingIds.push(opening.id)
   }
-  document.metadata.dwgOpeningRecovery='block-inserts-v1'
 }
 
 /** DWG data is retained as a complete JSON archive in document.metadata.dwgJson. */
@@ -107,7 +107,12 @@ export class DwgConverter implements CadConverter<ArrayBuffer> {
     }]))
     const header={...archive.header,...(inferredMeters?{$INSUNITS:6}:{})} as Record<string,unknown>
     const document = new DxfConverter().convertEntities(raw,header,blockIndex,projectId,undefined,factorOverride)
-    if(selectedPlan)addBlockOpenings(document,archive,selectedPlan.id,raw)
+    if(selectedPlan){
+      applyDwgWallHeights(document,archive)
+      addBlockOpenings(document,archive,selectedPlan.id,raw)
+      integrateDwgOpeningsIntoWalls(document)
+      document.metadata.dwgOpeningRecovery='wall-openings-v2'
+    }
     if(inferredMeters&&!reference)document.coordinateSystem.sourceUnit='inferred:m'
     document.sourceCad.format = 'DWG'
     document.metadata.dwgParser = {

@@ -1,4 +1,5 @@
 import type { Point, Scene } from '../types'
+import { openingIntervalOnWall } from './openingGeometry'
 
 export type Barrier = { start: Point; end: Point; halfWidth: number }
 
@@ -13,10 +14,8 @@ export function buildBarriers(scene: Scene): Barrier[] {
   for (const wall of scene.walls) {
     const length = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y)
     if (length < 0.01) continue
-    const gaps = scene.openings.filter(opening => opening.type === 'DOOR' && opening.wallId === wall.id &&
-      opening.positionAlongWall !== null && opening.width !== null && opening.width >= 0.45)
-      .map(opening => ({ start: Math.max(0, opening.positionAlongWall! - opening.width! / 2),
-        end: Math.min(length, opening.positionAlongWall! + opening.width! / 2) }))
+    const gaps = scene.openings.filter(opening => opening.type === 'DOOR' && opening.width !== null && opening.width >= 0.45)
+      .flatMap(opening => {const interval=openingIntervalOnWall(wall,opening);return interval?[interval]:[]})
       .sort((a, b) => a.start - b.start)
     let cursor = 0
     const add = (from: number, to: number) => {
