@@ -1,24 +1,51 @@
 'use client'
-import type { ProjectDocument } from '@/lib/model'
+import { useEffect, useRef, useState } from 'react'
+import type { ProjectDocument, Point } from '@/lib/model'
 import { useEditor } from '@/stores/editor-store'
-import Icon from './PrototypeIcon'
-export default function CadPlan({document:doc}:{document:ProjectDocument}){
-  const select=useEditor(s=>s.select),selected=useEditor(s=>s.selected),apply=useEditor(s=>s.apply)
-  const contours=doc.sourceCad.rawEntities.filter(e=>e.points.length>=3&&(e.original.closed===true||e.original.shape===true)).flatMap(e=>e.points)
-  const structural=[...doc.site.boundary,...doc.walls.flatMap(w=>[w.start,w.end]),...doc.rooms.flatMap(r=>r.polygon)]
-  const drawing=doc.sourceCad.rawEntities.filter(e=>e.points.length>1).flatMap(e=>e.points)
-  const points=structural.length?structural:contours.length?contours:drawing.length?drawing:[{x:0,y:0},{x:12,y:12}]
-  const xs=points.map(p=>p.x),ys=points.map(p=>p.y),minX=Math.min(...xs),minY=Math.min(...ys),maxX=Math.max(...xs),maxY=Math.max(...ys),spanX=Math.max(0.01,maxX-minX),spanY=Math.max(0.01,maxY-minY)
-  const w=420,h=665,pad=33,scale=Math.min((w-2*pad)/spanX,(h-2*pad)/spanY),offsetX=(w-spanX*scale)/2,offsetY=(h-spanY*scale)/2
-  const x=(v:number)=>offsetX+(v-minX)*scale,y=(v:number)=>offsetY+(v-minY)*scale
-  const palette=['#dfe9de','#e8e5db','#e2e9ef','#e8e1ec','#e9e6dc','#e0e9e4','#e4eadf','#f0f2ed']
-  const path=(pts:{x:number;y:number}[])=>pts.map((p,i)=>`${i?'L':'M'}${x(p.x)} ${y(p.y)}`).join(' ')+' Z'
-  return <div className="cad-canvas"><div className="cad-paper"><svg className="cad-svg" viewBox="0 0 420 665" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={`Planta com ${doc.rooms.length} ambientes`}><defs><pattern id="fineGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#c4d1c6" strokeWidth=".35"/></pattern></defs><rect width="420" height="665" fill="url(#fineGrid)"/>
-    {doc.rooms.map((r,i)=><path key={r.id} d={path(r.polygon)} fill={palette[i%palette.length]} fillOpacity=".78" stroke={selected?.id===r.id?'#5d986a':'none'} strokeWidth="3" onClick={()=>select({kind:'ROOM',id:r.id})} style={{cursor:'pointer'}}/>)}
-    {doc.sourceCad.rawEntities.filter(e=>e.points.length>=3&&(e.original.closed||e.original.shape)&&!doc.rooms.some(r=>r.sourceEntityIds.includes(e.id))).map(e=><path key={e.id} d={path(e.points)} fill="#a8c9ab" fillOpacity=".15" stroke="#779a7b" strokeDasharray="4 3" onClick={()=>apply({type:'ADD_ROOM_FROM_ENTITY',entityId:e.id})} style={{cursor:'pointer'}}/>)}
-    {doc.sourceCad.rawEntities.filter(e=>e.points.length>=2&&!doc.walls.some(w=>w.sourceEntityIds.includes(e.id))).map(e=><path key={e.id} d={e.points.map((p,i)=>`${i?'L':'M'}${x(p.x)} ${y(p.y)}`).join(' ')} fill="none" stroke="#7b9185" strokeWidth="1"/>)}
-    {doc.walls.map(w=><line key={w.id} x1={x(w.start.x)} y1={y(w.start.y)} x2={x(w.end.x)} y2={y(w.end.y)} stroke={selected?.id===w.id?'#446f51':'#54645d'} strokeWidth={Math.max(3,w.thickness*scale)} strokeLinecap="square" onClick={()=>select({kind:'WALL',id:w.id})} style={{cursor:'pointer'}}/>)}
-    {doc.openings.map(o=>o.wallId&&o.width&&o.positionAlongWall!==null&&(()=>{const wall=doc.walls.find(w=>w.id===o.wallId);if(!wall)return null;const len=Math.hypot(wall.end.x-wall.start.x,wall.end.y-wall.start.y);const unitX=(wall.end.x-wall.start.x)/len,unitY=(wall.end.y-wall.start.y)/len;return <line key={o.id} x1={x(o.center.x-unitX*o.width/2)} y1={y(o.center.y-unitY*o.width/2)} x2={x(o.center.x+unitX*o.width/2)} y2={y(o.center.y+unitY*o.width/2)} stroke={o.type==='WINDOW'?'#6fa5ad':'#fcfcf9'} strokeWidth={Math.max(5,wall.thickness*scale+2)}/>})())}
-    <g className="room-map-labels" fontFamily="DM Sans, sans-serif" textAnchor="middle" fill="#62736a" fontSize="9.5" fontWeight="700">{doc.rooms.map((r,i)=><text key={r.id} x={x(r.center.x)} y={y(r.center.y)} onClick={()=>select({kind:'ROOM',id:r.id})} style={{cursor:'pointer'}}>{r.name==='Ambiente sem nome'?`AMBIENTE ${String(i+1).padStart(2,'0')}`:r.name.toUpperCase()}</text>)}</g>
-    <g fill="#83958b" fontSize="10" fontFamily="DM Sans, sans-serif"><text x="210" y="660" textAnchor="middle">{spanX.toFixed(1)} METROS</text></g></svg></div><div className="cad-overlay-hint"><Icon name="pin"/> Selecione um ambiente ou uma parede</div><div className="canvas-bottom-note">{doc.metadata.demo?'PLANTA DEMONSTRATIVA · EDITÁVEL':'PLANTA IMPORTADA · EDITÁVEL'}</div></div>
+
+export default function CadPlan({document:doc,referenceId,onSelectReference}:{document:ProjectDocument;referenceId?:string;onSelectReference?:(id:string)=>void}){
+  const select=useEditor(state=>state.select)
+  const selected=useEditor(state=>state.selected)
+  const paper=useRef<HTMLDivElement>(null)
+  const [size,setSize]=useState({width:900,height:600})
+  const [zoom,setZoom]=useState(1)
+  useEffect(()=>{
+    const element=paper.current
+    if(!element)return
+    const observer=new ResizeObserver(([entry])=>setSize({width:entry.contentRect.width,height:entry.contentRect.height}))
+    observer.observe(element)
+    return()=>observer.disconnect()
+  },[])
+  useEffect(()=>setZoom(1),[doc.sourceCad.fileId,doc.metadata.dwgPlanId])
+  const structural=[...doc.site.boundary,...doc.walls.flatMap(wall=>[wall.start,wall.end]),...doc.rooms.flatMap(room=>room.polygon)]
+  const drawing=doc.sourceCad.rawEntities.filter(entity=>entity.points.length>1).flatMap(entity=>entity.points)
+  const points=doc.metadata.dwgPlanId&&drawing.length?drawing:structural.length?structural:drawing.length?drawing:[{x:0,y:0},{x:12,y:12}]
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity
+  for(const point of points){minX=Math.min(minX,point.x);minY=Math.min(minY,point.y);maxX=Math.max(maxX,point.x);maxY=Math.max(maxY,point.y)}
+  const spanX=Math.max(maxX-minX,.01),spanY=Math.max(maxY-minY,.01)
+  const w=Math.max(size.width,1),h=Math.max(size.height,1),pad=Math.min(68,w*.1,h*.12)
+  const scale=Math.min((w-2*pad)/spanX,(h-2*pad)/spanY)
+  const offsetX=(w-spanX*scale)/2,offsetY=(h-spanY*scale)/2
+  const x=(value:number)=>offsetX+(value-minX)*scale
+  const y=(value:number)=>offsetY+(value-minY)*scale
+  const path=(vertices:Point[],closed=false)=>vertices.map((point,index)=>`${index?'L':'M'}${x(point.x)} ${y(point.y)}`).join(' ')+(closed?' Z':'')
+  const zoomIn=()=>setZoom(value=>Math.min(value*1.4,12))
+  const zoomOut=()=>setZoom(value=>Math.max(value/1.4,.5))
+  return <div className="cad-canvas">
+    <div className="cad-paper" ref={paper}>
+      <svg className="cad-svg" viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg" role="img" aria-label={`Planta CAD com ${doc.rooms.length} ambientes`}>
+        <defs><pattern id="fineGrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#dbe4e8" strokeWidth=".6"/></pattern></defs>
+        <rect width={w} height={h} fill="url(#fineGrid)"/>
+        <g transform={`translate(${w/2} ${h/2}) scale(${zoom}) translate(${-w/2} ${-h/2})`}>
+          {doc.rooms.map((room,index)=><path key={room.id} d={path(room.polygon,true)} fill={['#e6eef0','#eef1ed','#e8edf3'][index%3]} fillOpacity=".65" stroke={selected?.id===room.id?'#0a7186':'#afc0c8'} strokeWidth={selected?.id===room.id?2.4:1.2} onClick={()=>select({kind:'ROOM',id:room.id})} className="cad-interactive"/>)}
+          {doc.sourceCad.rawEntities.filter(entity=>entity.points.length>=2&&!doc.walls.some(wall=>wall.sourceEntityIds.includes(entity.id))).map(entity=><path key={entity.id} d={path(entity.points)} fill="none" stroke={referenceId===entity.id?'#e0723f':/ALV|PAREDE|WALL/i.test(entity.layer??'')?'#20343d':/POR|PORTA|DOOR/i.test(entity.layer??'')?'#647b85':'#8ca0aa'} strokeWidth={referenceId===entity.id?3:/ALV|PAREDE|WALL/i.test(entity.layer??'')?1.35:.9} strokeLinecap="round" strokeLinejoin="round" onClick={()=>onSelectReference?.(entity.id)} className={onSelectReference?'cad-interactive':''}/>)}
+          {doc.walls.map(wall=><line key={wall.id} x1={x(wall.start.x)} y1={y(wall.start.y)} x2={x(wall.end.x)} y2={y(wall.end.y)} stroke={selected?.id===wall.id?'#0a7186':'#263b45'} strokeWidth={Math.max(2,Math.min(8,wall.thickness*scale))} onClick={()=>select({kind:'WALL',id:wall.id})} className="cad-interactive"/>)}
+          {doc.sourceCad.rawEntities.filter(entity=>entity.text&&entity.points.length===1).slice(0,150).map(entity=><text key={`text-${entity.id}`} x={x(entity.points[0].x)} y={y(entity.points[0].y)} fill="#6a7e88" fontSize="8" fontFamily="Arial, sans-serif">{entity.text?.slice(0,50)}</text>)}
+          {doc.rooms.map((room,index)=><text key={`label-${room.id}`} x={x(room.center.x)} y={y(room.center.y)} textAnchor="middle" fill="#31515e" fontSize="10" fontWeight="600" fontFamily="Arial, sans-serif" onClick={()=>select({kind:'ROOM',id:room.id})} className="cad-interactive">{room.name==='Ambiente sem nome'?`Ambiente ${index+1}`:room.name}</text>)}
+        </g>
+      </svg>
+    </div>
+    <div className="cad-zoom" aria-label="Zoom da planta"><button onClick={zoomOut} aria-label="Afastar">−</button><button onClick={()=>setZoom(1)}>Ajustar</button><button onClick={zoomIn} aria-label="Aproximar">+</button></div>
+    <div className="cad-scale">{spanX.toFixed(1)} × {spanY.toFixed(1)} {doc.coordinateSystem.calibrationStatus==='CONFIRMED'?'m':'unidades do desenho'}</div>
+  </div>
 }

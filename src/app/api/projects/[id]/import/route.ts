@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { db, readProject, writeDraft } from '@/lib/db'
 import { DxfConverter } from '@/lib/cad'
 import { DwgConverter } from '@/lib/dwg'
-import { dwgArchivePathname, saveDwgArchive, type DwgArchiveReference } from '@/lib/dwg-archive'
+import { dwgArchivePathname, loadDwgArchiveBytes, saveDwgArchive, unpackDwgArchive, type DwgArchiveReference } from '@/lib/dwg-archive'
+import { findDwgPlans } from '@/lib/dwg-plans'
 import type { DwgDocument } from 'dwg-json'
 import { loadLocalCad, validCadPath } from '@/lib/cad-storage'
 import { failure } from '@/lib/http'
@@ -13,6 +14,7 @@ export const maxDuration = 60
 const input = z.object({
   pathname: z.string().optional(),
   fileId: z.string().uuid().optional(),
+  planId: z.string().optional(),
   reference: z.object({ entityId: z.string(), lengthMeters: z.number().positive() }).optional(),
 })
 
@@ -42,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!local && blob?.statusCode !== 200) throw new Error('Arquivo CAD não encontrado no armazenamento')
     const source = local ? Uint8Array.from(local.bytes).buffer : await new Response(blob!.stream).arrayBuffer()
     const imported = format === 'DWG'
-      ? await new DwgConverter().convert(source, id, body.reference)
+      ? await new DwgConverter().convert(source, id, body.reference, body.planId)
       : new DxfConverter().convert(new TextDecoder().decode(source), id, body.reference)
     if (format === 'DWG') {
       const archive = imported.metadata.dwgJson as DwgDocument
@@ -67,9 +69,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const id = (await params).id
-    await readProject(id)
+    const current=await readProject(id)
     const files = await db()`SELECT id,pathname,format,created_at FROM project_files WHERE project_id=${id} ORDER BY created_at DESC`
-    return Response.json({ latestFile: files[0] ?? null, files })
+    let plans=current.document.metadata.dwgPlans
+    const archive=current.document.metadata.dwgArchive as DwgArchiveReference|undefined
+    if(!plans&&archive){
+      const document=unpackDwgArchive(await loadDwgArchiveBytes(id,archive),archive)
+      plans=findDwgPlans(document)
+    }
+    if(Array.isArray(plans)){
+      const seen=new Set<string>()
+      plans=plans.filter((plan:{blockName?:string;id:string})=>{const key=plan.blockName??plan.id;if(seen.has(key))return false;seen.add(key);return true})
+    }
+    return Response.json({ latestFile: files[0] ?? null, files, plans:plans??[] })
   } catch (error) {
     return failure(error)
   }

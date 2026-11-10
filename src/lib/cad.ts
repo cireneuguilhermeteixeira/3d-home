@@ -16,7 +16,7 @@ function points(e:Raw):Point[]{
 }
 function wallFaces(entities:ProjectDocument['sourceCad']['rawEntities']){
   const faces:{id:string;layer:string;a:Point;b:Point}[]=[]
-  for(const e of entities) if(/wall|parede|alvenaria|muro/i.test(e.layer??'')) for(let i=1;i<e.points.length;i++) if(dist(e.points[i-1],e.points[i])>=0.35) faces.push({id:e.id,layer:e.layer??'',a:e.points[i-1],b:e.points[i]})
+  for(const e of entities) if(/wall|parede|alvenaria|muro|ARQ-ALV/i.test(e.layer??'')) for(let i=1;i<e.points.length;i++) if(dist(e.points[i-1],e.points[i])>=0.35) faces.push({id:e.id,layer:e.layer??'',a:e.points[i-1],b:e.points[i]})
   const matches:{i:number;j:number;score:number;thickness:number;a:Point;b:Point}[]=[]
   for(let i=0;i<faces.length;i++)for(let j=i+1;j<faces.length;j++){
     const a=faces[i],b=faces[j];if(a.layer!==b.layer)continue
@@ -73,10 +73,10 @@ export class DxfConverter implements CadConverter {
     const parsed=new DxfParser().parseSync(input);if(!parsed)throw new Error('DXF inválido')
     return this.convertEntities((parsed.entities??[]) as unknown as Raw[],parsed.header as Record<string,unknown>??{},parsed.blocks as unknown as Record<string,unknown>??{},projectId,reference)
   }
-  convertEntities(raw:Raw[],header:Record<string,unknown>,blocks:Record<string,unknown>,projectId:string,reference?:{entityId:string;lengthMeters:number}):ProjectDocument {
+  convertEntities(raw:Raw[],header:Record<string,unknown>,blocks:Record<string,unknown>,projectId:string,reference?:{entityId:string;lengthMeters:number},factorOverride?:number):ProjectDocument {
     const units=Number(header.$INSUNITS??0)
-    let factor=unitMeters[units]??null
-    if(!factor&&reference){const match=raw.find((e,i)=>(e.handle??`entity-${i}`)===reference.entityId);const pts=match?points(match):[];if(pts.length<2||reference.lengthMeters<=0)throw new Error('Medida de referência inválida');factor=reference.lengthMeters/dist(pts[0],pts[1])}
+    let factor=factorOverride??unitMeters[units]??null
+    if(reference&&!factorOverride){const match=raw.find((e,i)=>(e.handle??`entity-${i}`)===reference.entityId);const pts=match?points(match):[];if(pts.length<2||reference.lengthMeters<=0)throw new Error('Linha de referência não encontrada. Clique em uma linha visível da planta.');factor=reference.lengthMeters/dist(pts[0],pts[1])}
     const base:ProjectDocument={schemaVersion:1,projectId,revision:0,site:{boundary:[],width:null,depth:null},coordinateSystem:{unit:'m',sourceUnit:units?String(units):null,metersPerSourceUnit:factor,calibrationStatus:factor?'CONFIRMED':'NEEDS_REFERENCE'},sourceCad:{fileId:null,format:'DXF',rawEntities:[],header,blocks},rooms:[],walls:[],openings:[],surfaces:[],assets:[],preferences:{styles:[],features:[],brief:''},materials:{},camera:{position:{x:0,y:1.65,z:0},direction:{x:0,y:0,z:-1},fov:60,roomId:null,timeOfDay:'day'},metadata:{}}
     base.sourceCad.rawEntities=raw.map((e,i)=>({id:e.handle??`entity-${i}`,type:e.type,layer:e.layer??'',original:e.originalCad??e,points:points(e).map(v=>p(v,factor??1)),text:e.text}))
     if(factor){
