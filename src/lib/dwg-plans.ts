@@ -3,6 +3,7 @@ import type { CadRawEntity } from './cad'
 
 type Matrix = { a:number;b:number;c:number;d:number;x:number;y:number }
 export type DwgPlan = { id:string;name:string;blockName:string;entityCount:number }
+export type DwgOpeningEvidence = { id:string;type:'DOOR'|'WINDOW'|'GATE';start:{x:number;y:number};end:{x:number;y:number};alternateEnd?:{x:number;y:number};sourceEntityIds:string[] }
 const identity:Matrix={a:1,b:0,c:0,d:1,x:0,y:0}
 const multiply=(left:Matrix,right:Matrix):Matrix=>({
   a:left.a*right.a+left.c*right.b,b:left.b*right.a+left.d*right.b,
@@ -55,4 +56,45 @@ export function projectDwgPlan(document:DwgDocument,planId:string):CadRawEntity[
   const matrix=insertion(root,rootBlock.base as {x:number;y:number}??{x:0,y:0})
   if(matrix)visit(rootBlock,multiply(identity,matrix),root.handleHex,0,new Set())
   return projected
+}
+
+/** Keep the semantic meaning of INSERTs after their strokes have been flattened. */
+export function findDwgOpeningInserts(document:DwgDocument,planId:string,projected:CadRawEntity[]):DwgOpeningEvidence[]{
+  const root=document.modelSpace.entities.find(record=>record.handleHex===planId&&record.type==='INSERT')
+  const rootBlock=root&&blockOf(document,root)
+  const rootMatrix=root&&rootBlock&&insertion(root,rootBlock.base as {x:number;y:number}??{x:0,y:0})
+  if(!rootBlock||!rootMatrix)return []
+  const result:DwgOpeningEvidence[]=[]
+  for(const insert of rootBlock.entities.filter(record=>record.type==='INSERT')){
+    const child=blockOf(document,insert)
+    if(!child)continue
+    const labels=[child.name,insert.layerName,...child.entities.map(entity=>entity.layerName)].join(' ').toLocaleLowerCase('pt-BR')
+    const type: DwgOpeningEvidence['type']|null=/port[aã]o|gate/.test(labels)?'GATE':/esquadria.*vidro|janela|arq-cxo/.test(labels)?'WINDOW':/arq-por-002|porta/.test(labels)&&child.entities.some(entity=>entity.type==='ARC')?'DOOR':null
+    if(!type)continue
+    const sourceEntityIds=projected.filter(entity=>entity.handle?.startsWith(`${planId}/${insert.handleHex}/`)).map(entity=>entity.handle!)
+    const points=projected.filter(entity=>entity.handle?.startsWith(`${planId}/${insert.handleHex}/`)).flatMap(entity=>entity.vertices??[])
+    if(points.length<2)continue
+    let start:{x:number;y:number},end:{x:number;y:number},alternateEnd:{x:number;y:number}|undefined
+    if(type==='DOOR'){
+      const arc=child.entities.find(entity=>entity.type==='ARC')
+      const geometry=arc?.geometry as {center?:{x:number;y:number};radius?:number;startAngle?:number;endAngle?:number}|undefined
+      const childMatrix=insertion(insert,child.base as {x:number;y:number}??{x:0,y:0})
+      if(!geometry?.center||!geometry.radius||!childMatrix)continue
+      const matrix=multiply(rootMatrix,childMatrix)
+      start=point(geometry.center,matrix)
+      const angle=geometry.startAngle??0
+      end=point({x:geometry.center.x+geometry.radius*Math.cos(angle),y:geometry.center.y+geometry.radius*Math.sin(angle)},matrix)
+      const lastAngle=geometry.endAngle??angle
+      alternateEnd=point({x:geometry.center.x+geometry.radius*Math.cos(lastAngle),y:geometry.center.y+geometry.radius*Math.sin(lastAngle)},matrix)
+      if(Math.hypot(end.x-start.x,end.y-start.y)<0.35)continue
+    }else{
+      const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x))
+      const minY=Math.min(...points.map(p=>p.y)),maxY=Math.max(...points.map(p=>p.y))
+      if(maxX-minX>=maxY-minY){const y=(minY+maxY)/2;start={x:minX,y};end={x:maxX,y}}
+      else{const x=(minX+maxX)/2;start={x,y:minY};end={x,y:maxY}}
+      if(Math.hypot(end.x-start.x,end.y-start.y)<0.35)continue
+    }
+    result.push({id:`opening-${planId}/${insert.handleHex}`,type,start,end,alternateEnd,sourceEntityIds})
+  }
+  return result
 }

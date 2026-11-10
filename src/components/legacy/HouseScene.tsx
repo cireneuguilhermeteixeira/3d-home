@@ -207,6 +207,30 @@ function OpeningFrame({ width, bottom, top, divider }: { width: number; bottom: 
   </>
 }
 
+function DetachedOpenings3D({ openings }: { openings: Opening[] }) {
+  return <>{openings.filter(opening => !opening.wallId && opening.spanStart && opening.spanEnd &&
+    (opening.type === 'DOOR' || opening.type === 'WINDOW')).map(opening => {
+    const a = opening.spanStart!, b = opening.spanEnd!
+    const width = Math.hypot(b.x - a.x, b.y - a.y)
+    if (width < 0.35) return null
+    const sill = opening.type === 'WINDOW' ? opening.sillHeight ?? VISUAL_UNMEASURED_WINDOW_SILL : 0
+    const height = opening.height ?? (opening.type === 'WINDOW' ? VISUAL_UNMEASURED_WINDOW_HEIGHT : VISUAL_DOOR_HEIGHT)
+    return <group key={opening.id} position={[(a.x + b.x) / 2, 0, (a.y + b.y) / 2]}
+      rotation={[0, -Math.atan2(b.y - a.y, b.x - a.x), 0]}>
+      <mesh position={[0, sill + height / 2, 0]} castShadow={opening.type === 'DOOR'}>
+        <boxGeometry args={[Math.max(0.1, width - 0.08), Math.max(0.1, height - 0.06), opening.type === 'WINDOW' ? 0.025 : 0.055]} />
+        <meshStandardMaterial color={opening.type === 'WINDOW' ? '#83abb5' : '#8a7464'}
+          transparent={opening.type === 'WINDOW'} opacity={opening.type === 'WINDOW' ? 0.42 : 1}
+          depthWrite={opening.type !== 'WINDOW'} roughness={opening.type === 'WINDOW' ? 0.2 : 0.72} />
+      </mesh>
+      {opening.type === 'WINDOW' && width > 1.2 && <mesh position={[0, sill + height / 2, 0.04]}>
+        <boxGeometry args={[0.045, height, 0.08]} /><meshStandardMaterial color="#566d71" />
+      </mesh>}
+      <OpeningFrame width={width} bottom={sill} top={sill + height} divider={null} />
+    </group>
+  })}</>
+}
+
 function Gates3D({ openings }: { openings: Opening[] }) {
   return <>{openings.filter(o => o.type === 'GATE' && o.spanStart && o.spanEnd && o.height).map(gate => {
     const a = gate.spanStart!, b = gate.spanEnd!, width = Math.hypot(b.x - a.x, b.y - a.y)
@@ -254,7 +278,7 @@ export function HouseScene({ scene, mode, reset, attentionPoints, placing, onPic
       castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-30} shadow-camera-right={30}
       shadow-camera-top={35} shadow-camera-bottom={-35} shadow-bias={-0.0004} shadow-radius={3} />
     {scene.site.boundary.length>=3 && <Floor3D scene={scene} />}
-    {mode !== 'cad' && <><Walls3D walls={scene.walls} openings={scene.openings} walking={mode === 'walk'} /><Gates3D openings={scene.openings} /></>}
+    {mode !== 'cad' && <><Walls3D walls={scene.walls} openings={scene.openings} walking={mode === 'walk'} /><DetachedOpenings3D openings={scene.openings} /><Gates3D openings={scene.openings} /></>}
     {mode !== 'walk' && <DrawingLines3D scene={scene} mode={mode} />}
     {mode === 'cad' && placing && <PickPlane scene={scene} onPick={onPick} />}
     {mode === 'walk' ? <WalkControls scene={scene} reset={reset} active={walkActive} onActiveChange={onWalkActiveChange} /> :

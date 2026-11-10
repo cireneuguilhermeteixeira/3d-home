@@ -20,7 +20,29 @@ export default function ProjectEditor({id,aiAvailable}:{id:string;aiAvailable:bo
   const state=useEditor(),[name,setName]=useState('Minha casa'),[loading,setLoading]=useState(true),[busy,setBusy]=useState(''),[notice,setNotice]=useState(''),[modal,setModal]=useState<'history'|'budget'|'image'|'requirements'|null>(null),[requirement,setRequirement]=useState<'scale'|'ai'|'file'>('scale'),[revisions,setRevisions]=useState<{revision:number;created_at:string}[]>([]),[image,setImage]=useState(''),[prompt,setPrompt]=useState(''),[referenceId,setReferenceId]=useState(''),[referenceLength,setReferenceLength]=useState(''),[importPath,setImportPath]=useState(''),[importedFiles,setImportedFiles]=useState<ImportedFile[]>([]),[dwgPlans,setDwgPlans]=useState<DwgPlan[]>([]),[imageMode,setImageMode]=useState<'screenshot'|'metadata'>('screenshot'),[showContext,setShowContext]=useState(false)
   const inFlight=useRef<Promise<void>|null>(null)
   const autoUpgraded=useRef(false)
-  useEffect(()=>{let active=true;fetch(`/api/projects/${id}`).then(json).then(data=>{if(!active)return;setName(data.project.name);useEditor.getState().load(data.document,data.draftVersion,data.baseRevision);setLoading(false);return fetch(`/api/projects/${id}/import`).then(json)}).then(data=>{if(active&&data){setImportedFiles(data.files??[]);setDwgPlans(data.plans??[]);if(data.latestFile){const current=useEditor.getState().document;setImportPath(data.files?.find((file:ImportedFile)=>file.id===current?.sourceCad.fileId)?.pathname??data.latestFile.pathname)}}}).catch(e=>{if(active){useEditor.getState().setError(String(e));setLoading(false)}});return()=>{active=false}},[id])
+  useEffect(()=>{
+    let active=true
+    async function initialize(){
+      const data=await json(await fetch(`/api/projects/${id}`))
+      const source=data.document as ProjectDocument
+      let recoveryError=''
+      if(source.sourceCad.format==='DWG'&&source.coordinateSystem.calibrationStatus==='CONFIRMED'&&typeof source.metadata.dwgPlanId==='string'&&source.metadata.dwgArchive&&source.metadata.dwgOpeningRecovery!=='block-inserts-v1'){
+        try{const recovered=await json(await fetch(`/api/projects/${id}/openings`,{method:'POST'}));data.document=recovered.document;data.draftVersion=recovered.draftVersion;data.baseRevision=recovered.baseRevision}
+        catch(error){recoveryError=error instanceof Error?error.message:String(error)}
+      }
+      if(!active)return
+      setName(data.project.name)
+      useEditor.getState().load(data.document,data.draftVersion,data.baseRevision)
+      if(recoveryError)useEditor.getState().setError(recoveryError)
+      setLoading(false)
+      const imported=await json(await fetch(`/api/projects/${id}/import`))
+      if(!active)return
+      setImportedFiles(imported.files??[]);setDwgPlans(imported.plans??[])
+      if(imported.latestFile){const current=useEditor.getState().document;setImportPath(imported.files?.find((file:ImportedFile)=>file.id===current?.sourceCad.fileId)?.pathname??imported.latestFile.pathname)}
+    }
+    void initialize().catch(error=>{if(active){useEditor.getState().setError(String(error));setLoading(false)}})
+    return()=>{active=false}
+  },[id])
   const flush=useCallback(async()=>{
     if(inFlight.current){await inFlight.current;if(useEditor.getState().pending.length)return flush();return}
     const s=useEditor.getState();if(!s.pending.length)return
